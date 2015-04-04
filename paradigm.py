@@ -3,7 +3,7 @@ import sys
 
 class paradigm:
 	
-	def __init__(self, views, focus = 0):
+	def __init__(self, views, focus):
 		self.eyes = []
 		self.gaze = focus
 		try:
@@ -42,11 +42,11 @@ class paradigm:
 		else:
 			self.gaze = n_dir
 
-	def view(self):
-		return self.eyes(self.gaze)
+	def focus(self):
+		
+		return self.eyes[self.gaze]
 
 	def jar(self):
 		for eye in self.eyes:
 			yield eye
-
 
