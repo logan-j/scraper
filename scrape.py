@@ -18,7 +18,8 @@ class scraper:
 		self.links = []
 		try:
 			with open(links, 'r') as f:
-				self.links = [x.split("\t") for x in f.readlines()]
+				self.links = [re.split(',|\t', x) for x in f.readlines()]
+			
 			if self.links == None: self.links = []
 		except IOError:
 			sys.stderr.write("Link file not found.\n")
@@ -34,7 +35,8 @@ class scraper:
 		count, num = 1, len(self.links)
 		
 		for line in self.links:
-			
+			print line
+			time.sleep(5)
 			sys.stderr.write("Working on %s: %d of %d\n" % (line[1], count, num))
 			html = self.load(line[1])
 
@@ -202,15 +204,5 @@ class scraper:
 			except Exception as inst:
 				sys.stderr.write(str(inst))
 		return units
-
-"""
-def main(links):
-	sc = scraper("perspectives.yaml", links)
-	sc.run()
-
-
-main()
-"""
-
 
 
