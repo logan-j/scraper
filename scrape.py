@@ -28,7 +28,7 @@ class scraper:
 			sys.stderr.write("Please set links before running.\n")			
 			return		
 		
-		print "property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date"
+		sys.stdout.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date\n")
 		
 	
 		count, num = 1, len(self.links)
@@ -47,7 +47,7 @@ class scraper:
 			for unit in units:
 				try:		
 
-					print self.printer(unit, line[0])
+					sys.stdout.write(self.printer(unit, line[0]) + "\n")
 
 				except Exception as inst:
 					sys.stderr.write(str(inst) + "\n")
@@ -196,21 +196,21 @@ class scraper:
 							if text != None and 'rent' in text.lower():
 								if '$' in text: unit['price'][1] = text
 				else:
-					sys.stderr.write(b_title)
+					sys.stderr.write(b_title + "\n")
 					pass
 					
 			except Exception as inst:
 				sys.stderr.write(str(inst))
 		return units
 
-
+"""
 def main(links):
 	sc = scraper("perspectives.yaml", links)
 	sc.run()
 
 
-main("csv/link 8-1.csv")
-
+main()
+"""
 
 
 
