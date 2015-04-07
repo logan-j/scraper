@@ -1,0 +1,30 @@
+---
+name: link 8
+
+classIDs:
+- 'floorPlan'
+- 'bed'
+- 'bath'
+- 'unit'
+- 'sqft'
+- 'price'
+- 'available'
+- 'button'
+
+unit:
+  tag: '//tr'
+  subtag: 'td[@class]'
+  attribute: 'class'
+
+avail:
+  now: 'now'
+
+load:
+
+
+
+pricer:
+  regex: '[^\d]+'
+  r_identifier: 'rent'
+
+...
