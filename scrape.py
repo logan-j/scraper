@@ -35,8 +35,6 @@ class scraper:
 		count, num = 1, len(self.links)
 		
 		for line in self.links:
-			print line
-			time.sleep(5)
 			sys.stderr.write("Working on %s: %d of %d\n" % (line[1], count, num))
 			html = self.load(line[1])
 
