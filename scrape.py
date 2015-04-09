@@ -5,20 +5,24 @@ import re
 import time
 import lxml.html as lxml
 import sys
+import dryscrape
+import argparse
 from paradigm import paradigm
 
 class scraper:
 	
-	def __init__(self, i_file, links = None, focus = 0):
-		self.context = paradigm(i_file, focus)
+	def __init__(self, i_file, args):
+		self.context = paradigm(i_file, args.per[0])
 		self.focus = self.context.focus()
-		self.set_links(links)
+		self.set_links(args.infile)
+		self.output = args.outfile
+	 	
 	
 	def set_links(self, links):
 		self.links = []
 		try:
-			with open(links, 'r') as f:
-				self.links = [re.split(',|\t', x) for x in f.readlines()]
+			with open(links, 'r') as input_file:
+				self.links = [re.split(',|\t', x) for x in input_file.readlines()]
 			
 			if self.links == None: self.links = []
 		except IOError:
@@ -29,7 +33,7 @@ class scraper:
 			sys.stderr.write("Please set links before running.\n")			
 			return		
 		
-		sys.stdout.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date\n")
+		self.output.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date\n")
 		
 	
 		count, num = 1, len(self.links)
@@ -47,8 +51,10 @@ class scraper:
 			for unit in units:
 				try:		
 
-					sys.stdout.write(self.printer(unit, line[0]) + "\n")
-
+					self.output.write(self.printer(unit, line[0]) + "\n")
+				
+				except KeyboardInterrupt:
+					sys.exit()
 				except Exception as inst:
 					sys.stderr.write(str(inst) + "\n")
 			
@@ -67,6 +73,8 @@ class scraper:
 		try:
 			html = lxml.fromstring(requests.get(url).text)
 		
+		except KeyboardInterrupt:
+			sys.exit()
 		except:
 			sys.stderr.write("Connection Failed, try: %d\n" % tries)
 			if tries > 3:
@@ -85,6 +93,8 @@ class scraper:
 						try:
 							#add dialogue for cleaning links
 							return lxml.fromstring(requests.get("http:" + item.attrib['href']).text)
+						except KeyboardInterrupt:
+							sys.exit()						
 						except:
 							sys.stderr.write("Connection Failed, try: %d\n" % tries)
 							time.sleep(3)
@@ -175,32 +185,55 @@ class scraper:
 		units = []
 		w_unit = {}
 		for tag in html.xpath(self.focus['unit']['tag']):
-			for subtag in tag.xpath(self.focus['unit']['subtag']):
-				string = subtag.attrib[self.focus['unit']['attribute']]
 			
-				if string in self.focus['classIDs']:
+			for subtag in tag.xpath(self.focus['unit']['subtag']):
+				
+				if self.focus['unit']['explicit']:
+					string = subtag.attrib[self.focus['unit']['attribute']]
+					if string in self.focus['classIDs']:
+						w_unit[string] = self.link(subtag)
+				else:
+					string = 
 					w_unit[string] = self.link(subtag)
 
 			if len(w_unit) == 8: units.append(w_unit)	
 			w_unit = {}
 
-		for unit in units:
-			try:	
-				p_range, b_title, b_link = unit['price'][0], unit['button'][0], unit['button'][1]	
-				if len(p_range) > 8:
+		if self.focus['unit']['navigate']:
+			for unit in units:
+				try:	
+					p_range = unit['price'][0]
+					b_title = unit['button'][0]
+					b_link = unit['button'][1]	
+					if len(p_range) > 8:
 
-					if 'request' in b_title.lower() and b_link != '':
-						html = self.load("http:" + b_link, 1, False)
-						for tag in html.xpath("//span"):
-							text = tag.text
-							if text != None and 'rent' in text.lower():
-								if '$' in text: unit['price'][1] = text
-				else:
-					sys.stderr.write(b_title + "\n")
-					pass
+						if 'request' in b_title.lower() and b_link != '':
+							html = self.load("http:" + b_link, 1, False)
+							for tag in html.xpath("//span"):
+								text = tag.text
+								if text != None and 'rent' in text.lower():
+									if '$' in text: unit['price'][1] = text
+					else:
+						if 'request' not in b_title.lower():
+							sys.stderr.write(b_title + "\n")
+						pass
 					
-			except Exception as inst:
-				sys.stderr.write(str(inst))
+				except Exception as inst:
+					sys.stderr.write(str(inst))
 		return units
 
+
+def main():
+	
+	parser = argparse.ArgumentParser(description='Scrape general pricing and availability info.')
+	parser.add_argument('-n', '--num', type=int, nargs=1, help='Limit the number of links to run to NUM links from beginning.', default=[0])
+	parser.add_argument('-p', '--per', type=int, nargs=1, help='Specify the PER-th perspective to use, indexed started from 0.', default=[0])
+	parser.add_argument('infile', nargs='?', type=str)
+	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
+
+	args = parser.parse_args()
+	sc = scraper("perspectives.yaml", args)
+	sc.run(args.num[0])
+
+main()
 

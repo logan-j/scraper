@@ -15,6 +15,8 @@ unit:
   tag: '//tr'
   subtag: 'td[@class]'
   attribute: 'class'
+  explicit: True
+  navigate: True
 
 avail:
   now: 'now'
@@ -26,5 +28,22 @@ load:
 pricer:
   regex: '[^\d]+'
   r_identifier: 'rent'
+---
+name: pangea
+
+classIDs:
+- 'unit'
+- 'price'
+- 'sqft'
+- 'bath'
+- 'button'
+
+unit:
+  tag: '//tr'
+  subtag: 'td'
+  explicit: False
+  navigate: False
+  
+  
 
 ...
