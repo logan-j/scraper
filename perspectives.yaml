@@ -1,49 +1,166 @@
 ---
-name: link 8
+name: 'link 8'
 
 classIDs:
-- 'floorPlan'
-- 'bed'
-- 'bath'
-- 'unit'
-- 'sqft'
-- 'price'
-- 'available'
-- 'button'
+  floorPlan: 'floorPlan'
+  bed: 'bed'
+  bath: 'bath'
+  unit: 'unit'
+  sqft: 'sqft'
+  price: 'price'
+  available: 'available'
+  button: 'navigate'
 
 unit:
-  tag: '//tr'
-  subtag: 'td[@class]'
+  tag: '//tbody/tr'
+  subtag: './/td[@class]'
   attribute: 'class'
   explicit: True
   navigate: True
+  quan: !!int 8
 
 avail:
   now: 'now'
 
-load:
+timing: ''
 
+nav:
+  flag: 'request'
+  location: '//span'
 
+s_nav:
+  - 'floorPlan'
 
 pricer:
   regex: '[^\d]+'
-  r_identifier: 'rent'
+  r_identifier: '$'
+
 ---
-name: pangea
+name: 'link 55'
 
 classIDs:
-- 'unit'
-- 'price'
-- 'sqft'
-- 'bath'
-- 'button'
+  addr_or_apt: 'unit'
+  dynamic_pricing_rent: 'price'
+  show_available_date: 'available'
+  
+
+avail:
+  now: 'now'
 
 unit:
-  tag: '//tr'
-  subtag: 'td'
+  tag: '//div[@class="floor_plan"]'
+  subtag: './/*[@class]'
+  attribute: 'class'
+  explicit: True
+  navigate: False
+  quan: !!int 7
+
+pricer:
+  regex: '[^\d]+'
+
+timing: 'pre'
+
+pre_build:
+  f_root: 'p[@class="floor_plan_name"]'
+  floorPlan: ''
+  '[^\d.]+':
+    bed: !!int 0
+    bath: !!int 1
+    sqft: !!int 2
+---
+
+name: 'pangea (link 96)'
+
+reset:
+  - 'info'
+  - 'bath'
+  - 'sqft'
+  - 'price'
+  - 'unit'
+
+classIDs:
+  - 'info'
+  - 'bath'
+  - 'sqft'
+  - 'price'
+  - 'unit'
+
+avail:
+  now: 'now'
+
+pricer:
+  regex: '[^\d]+'
+
+unit:
+  tag: '//div[@class="panel panel-default"]'
+  subtag: './/tr/td'
   explicit: False
   navigate: False
-  
-  
+  quan: !!int 6
+
+timing: 'prepost'
+
+pre_build:
+  b_root: ''
+  bed:
+    find: './/h3'
+    remove: '\(.+\)'
+
+
+post_build:
+  available: '&now'
+  floorPlan:
+    - bed
+    - bath
+  bed:
+    '0': 'Studio'
+    ' ': '[^\d]+'
+  bath: '[^\d]+'
+
+---
+
+name: '***(IN PROGRESS) avalon***'
+
+classIDs:
+  navigate: 'view-details'
+  floorPlan:
+    xpath:
+    qual:
+    regex:
+  bed:
+    xpath: '//div[@class="description"]'
+    qual:
+    regex:
+  bath:
+    xpath: '//div[@class="description"]'
+    qual:
+    regex:
+  unit:
+    xpath:
+    qual:
+    regex:
+  sqft:
+    xpath: '//div[@class="description"]'
+    qual:
+    regex:
+  price:
+    xpath: '//tr'
+    qual: '12 months'
+    regex: '[^\d]+'
+  available:
+    xpath: '//div[@class="description"]'
+    qual:
+    regex:
+
+
+unit:
+  tag: '//section[@id="floor-plans"]'
+  subtag: '*/td[@class]'
+  attribute: 'class'
+  explicit: True
+  navigate: True
+  quan: !!int 1
+
+
 
 ...

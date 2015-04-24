@@ -1,13 +1,14 @@
 
 from datetime import date
+from scrapetools import *
 import requests
 import re
 import time
 import lxml.html as lxml
-import sys
-import dryscrape
+import sys, traceback
 import argparse
-from paradigm import paradigm
+
+
 
 class scraper:
 	
@@ -40,7 +41,7 @@ class scraper:
 		
 		for line in self.links:
 			sys.stderr.write("Working on %s: %d of %d\n" % (line[1], count, num))
-			html = self.load(line[1])
+			html = self.load(line[1].strip())
 
 			if html == None:
 				count += 1
@@ -56,7 +57,10 @@ class scraper:
 				except KeyboardInterrupt:
 					sys.exit()
 				except Exception as inst:
-					sys.stderr.write(str(inst) + "\n")
+					sys.stderr.write("%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args))
+					traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+
+
 			
 
 			if count == limit: break		
@@ -69,17 +73,21 @@ class scraper:
 		self.focus = self.context.focus()
 
 
+
 	def load(self, url, tries = 1, redirect = True):
+		if not url.startswith('http:'): url = "http:" + url
 		try:
-			html = lxml.fromstring(requests.get(url).text)
-		
+
+			text = requests.get(url).text
+			html = lxml.fromstring(text)
+
 		except KeyboardInterrupt:
 			sys.exit()
-		except:
-			sys.stderr.write("Connection Failed, try: %d\n" % tries)
+		except Exception as inst:
+			sys.stderr.write(str(inst) + ": Connection Failed, try: %d\n" % tries)
 			if tries > 3:
 				time.sleep(3)
-				return parse(url, tries + 1, redirect)
+				return self.load(url, tries + 1, redirect)
 			else:
 				sys.stderr.write("Connection Failed, Aborting\n")
 				return None
@@ -91,12 +99,15 @@ class scraper:
 				if item.text != None and "all available" in item.text:
 					if "href" in item.keys():
 						try:
-							#add dialogue for cleaning links
-							return lxml.fromstring(requests.get("http:" + item.attrib['href']).text)
+							goto = item.attrib['href']
+							if not goto.startswith('http:'):goto = 'http:' + goto
+
+
+							return lxml.fromstring(requests.get(goto).text)
 						except KeyboardInterrupt:
 							sys.exit()						
-						except:
-							sys.stderr.write("Connection Failed, try: %d\n" % tries)
+						except Exception as inst:
+							sys.stderr.write(str(inst) + ": Connection Failed, try: %d\n" % tries)
 							time.sleep(3)
 							if tries > 3:
 								return self.load(url, tries + 1, redirect)
@@ -135,7 +146,8 @@ class scraper:
 		 	
 
 		except Exception as inst:
-			sys.stderr.write(str(inst))
+			sys.stderr.write("%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args))
+			traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 			flag = '*'
 	
 		finally:
@@ -153,31 +165,27 @@ class scraper:
 								)
 
 	def link(self, node):
-		text, children = '', node.getchildren()
+		text = ''
 		try:
 			if node.text != None:
-				text = node.text
-		except:
-			pass
-		if len(children) > 0 and node.attrib['class'] != 'floorPlan':
-			href = ''		
-			for ch in node.xpath("a[@href]"):
-				if ch.attrib['href'] != None:
-					href = ch.attrib['href']
-				if ch.text != None:
-					text = ch.text
-				for gch in ch.getchildren():
-					if gch.text != None:
-						text = gch.text
 
-			return [text, href]
-		elif len(children) > 0 and node.attrib['class'] == 'floorPlan':
-			for ch in node.xpath("a[@href]"):
-				if ch.text != None:
-					text = ch.text
+				text = node.text.strip()
+			if len(text) == 0:
+				temp = [x.strip() for x in node.xpath('descendant::*/text()') if len(x.strip()) > 0]
+				if len(temp) > 0:
+					text = min(temp, key=len)
+		except Exception as inst:
+			sys.stderr.write("%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args))
+			traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
-			return text
-		else: return text
+
+		if self.focus['unit']['navigate']:
+			goto = node.xpath('.//*[@href]')
+			if len(goto) != 0 and node.attrib[self.focus['unit']['attribute']] not in self.focus['s_nav']:
+				return [text, goto[0].attrib['href']]
+			else: return text
+
+		return text
 	
 	
 
@@ -185,41 +193,90 @@ class scraper:
 		units = []
 		w_unit = {}
 		for tag in html.xpath(self.focus['unit']['tag']):
-			
+			const = {}
+			if self.focus['timing'].startswith('pre'):
+				if self.focus['pre_build'].has_key('f_root'):
+					self.focus['pre_build']['root'] = tag.xpath(self.focus['pre_build']['f_root'])[0].text
+					for key, val in tree(self.focus['pre_build']):
+						const[key] = val
+				elif self.focus['pre_build'].has_key('b_root'):
+					for key, val in dict.iteritems(self.focus['pre_build']):
+						if 'root' not in key:
+							if type(val) == dict:
+								text = self.link(tag.xpath(val['find'])[0])
+								cleaner = re.compile(val['remove'])
+								const[key] = cleaner.sub('', text).strip()
+
+							else:
+								const[key] = self.link(tag.xpath(val)[0])
 			for subtag in tag.xpath(self.focus['unit']['subtag']):
-				
+				if len(const) > 0:
+					for key, val in dict.iteritems(const): w_unit[key] = val
 				if self.focus['unit']['explicit']:
 					string = subtag.attrib[self.focus['unit']['attribute']]
-					if string in self.focus['classIDs']:
-						w_unit[string] = self.link(subtag)
-				else:
-					string = 
-					w_unit[string] = self.link(subtag)
 
-			if len(w_unit) == 8: units.append(w_unit)	
-			w_unit = {}
+					if self.focus['classIDs'].has_key(string):
+						w_unit[self.focus['classIDs'][string]] = self.link(subtag)
+
+				else:
+					if len(self.focus['classIDs']) != 0:
+						string = self.focus['classIDs'].pop()
+
+						w_unit[string] = self.link(subtag)
+					
+					
+				if len(w_unit) == self.focus['unit']['quan']:
+					if self.focus['timing'].endswith('post'):
+						for key, val in dict.iteritems(self.focus['post_build']):
+							if type(val) == str:
+								if val.startswith('&'):
+									w_unit[key] = val[1:]
+								else:
+									cleaner = re.compile(val)
+									w_unit[key] = cleaner.sub('', w_unit[key])
+							elif type(val) == dict:
+								for v_key, v_val in dict.iteritems(val):
+									replace = re.compile(v_val)
+									w_unit[key] = replace.sub(v_key, w_unit[key]).strip()
+
+							else:
+								for item in val:
+									if not w_unit.has_key(key):
+										w_unit[key] = w_unit[item]
+									else:
+										w_unit[key] += " " + w_unit[item]
+					units.append(w_unit)
+					w_unit = {}
+					if not self.focus['unit']['explicit']:
+						self.focus['classIDs'] = list(self.focus['reset'])
+
+
+
 
 		if self.focus['unit']['navigate']:
 			for unit in units:
 				try:	
 					p_range = unit['price'][0]
-					b_title = unit['button'][0]
-					b_link = unit['button'][1]	
+					b_title = unit['navigate'][0]
+					b_link = unit['navigate'][1]	
 					if len(p_range) > 8:
 
-						if 'request' in b_title.lower() and b_link != '':
-							html = self.load("http:" + b_link, 1, False)
-							for tag in html.xpath("//span"):
-								text = tag.text
-								if text != None and 'rent' in text.lower():
-									if '$' in text: unit['price'][1] = text
+						if self.focus['nav']['flag'] in b_title.lower() and b_link != '':
+							html = self.load(b_link, 1, False)
+							if html != None:
+								for tag in html.xpath(self.focus['nav']['location']):
+									text = tag.text
+									if text != None and self.focus['pricer']['r_identifier'] in text.lower():
+										unit['price'][1] = text
 					else:
-						if 'request' not in b_title.lower():
+						if self.focus['nav']['flag'] not in b_title.lower():
 							sys.stderr.write(b_title + "\n")
 						pass
 					
 				except Exception as inst:
-					sys.stderr.write(str(inst))
+					sys.stderr.write("%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args))
+					traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+
 		return units
 
 
@@ -228,12 +285,18 @@ def main():
 	parser = argparse.ArgumentParser(description='Scrape general pricing and availability info.')
 	parser.add_argument('-n', '--num', type=int, nargs=1, help='Limit the number of links to run to NUM links from beginning.', default=[0])
 	parser.add_argument('-p', '--per', type=int, nargs=1, help='Specify the PER-th perspective to use, indexed started from 0.', default=[0])
+	parser.add_argument('-l', '--list', action='store_true', help="List the names of all available perspective types and exit.")
 	parser.add_argument('infile', nargs='?', type=str)
 	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
 
 	args = parser.parse_args()
-	sc = scraper("perspectives.yaml", args)
-	sc.run(args.num[0])
+	if args.list:
+		names = paradigm("perspectives.yaml", 0)
+		for index, item in enumerate(names.jar()):
+			print index, item['name']
+	else:
+		sc = scraper("perspectives.yaml", args)
+		sc.run(args.num[0])
 
 main()
 
