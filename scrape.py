@@ -75,7 +75,7 @@ class scraper:
 
 
 	def load(self, url, tries = 1, redirect = True):
-		if not url.startswith('http:'): url = "http:" + url
+		if not url.startswith('http'): url = "http:" + url
 		try:
 
 			text = requests.get(url).text
@@ -100,7 +100,7 @@ class scraper:
 					if "href" in item.keys():
 						try:
 							goto = item.attrib['href']
-							if not goto.startswith('http:'):goto = 'http:' + goto
+							if not goto.startswith('http'):goto = 'http:' + goto
 
 
 							return lxml.fromstring(requests.get(goto).text)
