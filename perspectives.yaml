@@ -40,7 +40,7 @@ name: 'link 55'
 
 classIDs:
   addr_or_apt: 'unit'
-  dynamic_pricing_rent: 'price'
+  unit_rent: 'price'
   show_available_date: 'available'
   
 
@@ -56,12 +56,12 @@ unit:
   quan: !!int 7
 
 pricer:
-  regex: '[^\d]+'
+  regex: '([^\d]+|(?<=\.)\d+)+'
 
 timing: 'pre'
 
 pre_build:
-  f_root: 'p[@class="floor_plan_name"]'
+  f_root: 'p[@class="floor_plan_size"]'
   floorPlan: ''
   '[^\d.]+':
     bed: !!int 0

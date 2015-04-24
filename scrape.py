@@ -24,14 +24,15 @@ class scraper:
 		try:
 			with open(links, 'r') as input_file:
 				self.links = [re.split(',|\t', x) for x in input_file.readlines()]
-			
+
 			if self.links == None: self.links = []
 		except IOError:
 			sys.stderr.write("Link file not found.\n")
 	
 	def run(self, limit = 0):
 		if self.links == None or self.links == []:
-			sys.stderr.write("Please set links before running.\n")			
+			sys.stderr.write("Please set links before running.\n")
+
 			return		
 		
 		self.output.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date\n")
@@ -101,7 +102,6 @@ class scraper:
 						try:
 							goto = item.attrib['href']
 							if not goto.startswith('http'):goto = 'http:' + goto
-
 
 							return lxml.fromstring(requests.get(goto).text)
 						except KeyboardInterrupt:
@@ -223,8 +223,6 @@ class scraper:
 						string = self.focus['classIDs'].pop()
 
 						w_unit[string] = self.link(subtag)
-					
-					
 				if len(w_unit) == self.focus['unit']['quan']:
 					if self.focus['timing'].endswith('post'):
 						for key, val in dict.iteritems(self.focus['post_build']):
@@ -276,7 +274,6 @@ class scraper:
 				except Exception as inst:
 					sys.stderr.write("%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args))
 					traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
-
 		return units
 
 

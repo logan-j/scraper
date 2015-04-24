@@ -11,7 +11,7 @@ class tree:
 
 	def build(self, input):
 		if input != None:
-			self.root = input['root']
+			self.root = input['root'].strip()
 			for key, val in dict.iteritems(input):
 				if 'root' not in key:
 					if type(val) == str:
