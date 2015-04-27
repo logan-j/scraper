@@ -33,7 +33,8 @@ s_nav:
 
 pricer:
   regex: '[^\d]+'
-  r_identifier: '$'
+  r_identifier: 'rent'
+  set: False
 
 ---
 name: 'link 55'

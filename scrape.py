@@ -133,7 +133,7 @@ class scraper:
 	
 		try:
 			if type(p_range) != str:
-				if self.focus['pricer']['r_identifier'] in p_range[1].lower():
+				if self.focus['pricer']['set']:
 					out = p_range[1]
 				else:	
 
@@ -265,6 +265,7 @@ class scraper:
 								for tag in html.xpath(self.focus['nav']['location']):
 									text = tag.text
 									if text != None and self.focus['pricer']['r_identifier'] in text.lower():
+										self.focus['pricer']['set'] = True
 										unit['price'][1] = text
 					else:
 						if self.focus['nav']['flag'] not in b_title.lower():
