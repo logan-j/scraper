@@ -53,7 +53,7 @@ unit:
   attribute: 'class'
   explicit: True
   navigate: False
-  quan: !!int 7
+  quan: !!int 8
 
 pricer:
   regex: '([^\d]+|(?<=\.)\d+)+'
@@ -96,7 +96,7 @@ unit:
   subtag: './/tr/td'
   explicit: False
   navigate: False
-  quan: !!int 6
+  quan: !!int 7
 
 timing: 'prepost'
 
