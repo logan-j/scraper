@@ -126,14 +126,14 @@ class scraper:
 			return "%s/%s/%s" % (today.month, today.day, today.year)
 		else: return i_date
 
-	def pricer(self, p_range):
-	
+	def pricer(self, unit):
+		p_range = unit['price']
 		non_decimal = re.compile(self.focus['pricer']['regex'])
 		out = flag = ''
 	
 		try:
 			if type(p_range) != str:
-				if self.focus['pricer']['set']:
+				if unit['set']:
 					out = p_range[1]
 				else:	
 
@@ -160,7 +160,7 @@ class scraper:
 								unit['sqft'],
 								unit['bed'],
 								unit['bath'],
-								self.pricer(unit['price']),
+								self.pricer(unit),
 								self.avail(unit['available'])
 								)
 
@@ -191,7 +191,7 @@ class scraper:
 
 	def get_units(self, html):
 		units = []
-		w_unit = {}
+		w_unit = {'set': False}
 		for tag in html.xpath(self.focus['unit']['tag']):
 			const = {}
 			if self.focus['timing'].startswith('pre'):
@@ -216,7 +216,10 @@ class scraper:
 					string = subtag.attrib[self.focus['unit']['attribute']]
 
 					if self.focus['classIDs'].has_key(string):
-						w_unit[self.focus['classIDs'][string]] = self.link(subtag)
+						temp = self.link(subtag)
+						if len(temp) > 0:
+
+							w_unit[self.focus['classIDs'][string]] = temp
 
 				else:
 					if len(self.focus['classIDs']) != 0:
@@ -244,7 +247,7 @@ class scraper:
 									else:
 										w_unit[key] += " " + w_unit[item]
 					units.append(w_unit)
-					w_unit = {}
+					w_unit = {'set': False}
 					if not self.focus['unit']['explicit']:
 						self.focus['classIDs'] = list(self.focus['reset'])
 
@@ -265,7 +268,7 @@ class scraper:
 								for tag in html.xpath(self.focus['nav']['location']):
 									text = tag.text
 									if text != None and self.focus['pricer']['r_identifier'] in text.lower():
-										self.focus['pricer']['set'] = True
+										unit['set'] = True
 										unit['price'][1] = text
 					else:
 						if self.focus['nav']['flag'] not in b_title.lower():

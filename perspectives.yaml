@@ -17,7 +17,7 @@ unit:
   attribute: 'class'
   explicit: True
   navigate: True
-  quan: !!int 8
+  quan: !!int 9
 
 avail:
   now: 'now'
@@ -34,7 +34,6 @@ s_nav:
 pricer:
   regex: '[^\d]+'
   r_identifier: 'rent'
-  set: False
 
 ---
 name: 'link 55'
