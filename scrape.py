@@ -115,7 +115,7 @@ class scraper:
 								sys.stderr.write("Connection Failed, Aborting\n")
 								return None
 					else:
-						sys.stderr.write("No Current Availability")
+						sys.stderr.write("No Current Availability\n")
 						return None
 
 		return html
