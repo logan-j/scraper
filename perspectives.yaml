@@ -39,7 +39,7 @@ pricer:
 name: 'link 55'
 
 classIDs:
-  addr_or_apt: 'unit'
+  addr_or_apt address: 'unit'
   unit_rent: 'price'
   show_available_date: 'available'
   

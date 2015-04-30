@@ -215,11 +215,14 @@ class scraper:
 				if self.focus['unit']['explicit']:
 					string = subtag.attrib[self.focus['unit']['attribute']]
 
-					if self.focus['classIDs'].has_key(string):
-						temp = self.link(subtag)
-						if len(temp) > 0:
+					for key in self.focus['classIDs'].keys():
+						if key.startswith(string):
+							temp = self.link(subtag)
+							if len(temp) > 0:
 
-							w_unit[self.focus['classIDs'][string]] = temp
+								w_unit[self.focus['classIDs'][key]] = temp
+							break
+						
 
 				else:
 					if len(self.focus['classIDs']) != 0:
