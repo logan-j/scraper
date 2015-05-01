@@ -12,12 +12,16 @@ class tree:
 	def build(self, input):
 		if input != None:
 			self.root = input['root'].strip()
-			for key, val in dict.iteritems(input):
-				if 'root' not in key:
+			if input.has_key('replace'):
+				for item in input['replace']:
+					for key, val in dict.iteritems(item):
+						self.root = re.sub(key, val, self.root.lower())
+			for key, val in dict.iteritems(input):					
+				if 'root' not in key and 'replace' not in key:
 					if type(val) == str:
 
 						regex = re.compile(val)
-						self.dict[key] = regex.sub('', self.root)
+						self.dict[key] = regex.sub('', input['root'].strip())
 					elif type(val) == dict:
 						regex = re.compile(key)
 						items = regex.split(self.root)

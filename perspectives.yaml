@@ -27,6 +27,8 @@ timing: ''
 nav:
   flag: 'request'
   location: '//p/span'
+  links: '//a'
+  redirect_on: 'all available'
 
 s_nav:
   - 'floorPlan'
@@ -42,7 +44,6 @@ classIDs:
   addr_or_apt address: 'unit'
   unit_rent: 'price'
   show_available_date: 'available'
-  
 
 avail:
   now: 'now'
@@ -63,10 +64,16 @@ timing: 'pre'
 pre_build:
   f_root: 'p[@class="floor_plan_size"]'
   floorPlan: ''
+  replace:
+    -
+      studio: '0 1'
+    -
+      '[^\d\s]': ' '
   '[^\d.]+':
     bed: !!int 0
     bath: !!int 1
     sqft: !!int 2
+
 ---
 
 name: 'pangea (link 96)'
@@ -119,48 +126,25 @@ post_build:
 
 ---
 
-name: '***(IN PROGRESS) avalon***'
+name: 'avalonbay'
+
+pre_build:
+  floorPlanType: 'bed'
+  floorPlanBathType: 'bath'
+  floorPlanName: 'floorPlan'
 
 classIDs:
-  navigate: 'view-details'
-  floorPlan:
-    xpath:
-    qual:
-    regex:
-  bed:
-    xpath: '//div[@class="description"]'
-    qual:
-    regex:
-  bath:
-    xpath: '//div[@class="description"]'
-    qual:
-    regex:
-  unit:
-    xpath:
-    qual:
-    regex:
-  sqft:
-    xpath: '//div[@class="description"]'
-    qual:
-    regex:
-  price:
-    xpath: '//tr'
-    qual: '12 months'
-    regex: '[^\d]+'
-  available:
-    xpath: '//div[@class="description"]'
-    qual:
-    regex:
+  effectiveRent: 'price'
+  apartmentNumber: 'unit'
+  apartmentSize: 'sqft'
+  availableDate: 'available'
 
+nav:
+  links: '//script[@type="text/javascript"]'
+  redirect_on: "communitycode"
 
-unit:
-  tag: '//section[@id="floor-plans"]'
-  subtag: '*/td[@class]'
-  attribute: 'class'
-  explicit: True
-  navigate: True
-  quan: !!int 1
-
-
-
+json:
+  format: "http://api.avalonbay.com/json/reply/ApartmentSearch?communityCode=%s"
+  split: '\"'
+  index: !!int 1
 ...

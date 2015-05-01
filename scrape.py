@@ -1,5 +1,5 @@
 
-from datetime import date
+from datetime import date, datetime
 from scrapetools import *
 import requests
 import re
@@ -7,13 +7,13 @@ import time
 import lxml.html as lxml
 import sys, traceback
 import argparse
-
+import json
 
 
 class scraper:
 	
-	def __init__(self, i_file, args):
-		self.context = paradigm(i_file, args.per[0])
+	def __init__(self, para, args):
+		self.context = para
 		self.focus = self.context.focus()
 		self.set_links(args.infile)
 		self.output = args.outfile
@@ -42,7 +42,7 @@ class scraper:
 		
 		for line in self.links:
 			sys.stderr.write("Working on %s: %d of %d\n" % (line[1], count, num))
-			html = self.load(line[1].strip())
+			html = self.load(line[1].strip(), 1, self.focus['unit']['navigate'])
 
 			if html == None:
 				count += 1
@@ -67,20 +67,24 @@ class scraper:
 			if count == limit: break		
 			count +=1
 
+	"""
 	def sample(self):
 		for eye in self.context.jar():
 			self.focus = eye
 			run(1)
 		self.focus = self.context.focus()
+	"""
 
 
-
-	def load(self, url, tries = 1, redirect = True):
+	def load(self, url, tries = 1, navigate = True):
 		if not url.startswith('http'): url = "http:" + url
 		try:
 
-			text = requests.get(url).text
-			html = lxml.fromstring(text)
+			text = requests.get(url)
+			if text.status_code == 404:
+				sys.stderr.write("Status code %d. Skipping URL\n" % text.status_code)
+				return None
+			html = lxml.fromstring(text.text)
 
 		except KeyboardInterrupt:
 			sys.exit()
@@ -88,17 +92,22 @@ class scraper:
 			sys.stderr.write(str(inst) + ": Connection Failed, try: %d\n" % tries)
 			if tries > 3:
 				time.sleep(3)
-				return self.load(url, tries + 1, redirect)
+				return self.load(url, tries + 1, navigate)
 			else:
 				sys.stderr.write("Connection Failed, Aborting\n")
 				return None
 
-		if redirect:
-			for item in html.xpath('//a'):
+		if navigate:
+
+			for item in html.xpath(self.focus['nav']['links']):
 
 		
-				if item.text != None and "all available" in item.text:
-					if "href" in item.keys():
+				if item.text != None and self.focus['nav']['redirect_on'] in item.text.lower():
+					if self.focus.has_key('json'):
+						split = re.compile(self.focus['json']['split'])
+						loc = split.split(item.text)[self.focus['json']['index']]
+						return json.loads(requests.get(self.focus['json']['format'] % loc).text)
+					elif "href" in item.keys():
 						try:
 							goto = item.attrib['href']
 							if not goto.startswith('http'):goto = 'http:' + goto
@@ -110,7 +119,7 @@ class scraper:
 							sys.stderr.write(str(inst) + ": Connection Failed, try: %d\n" % tries)
 							time.sleep(3)
 							if tries > 3:
-								return self.load(url, tries + 1, redirect)
+								return self.load(url, tries + 1, navigate)
 							else:
 								sys.stderr.write("Connection Failed, Aborting\n")
 								return None
@@ -240,6 +249,7 @@ class scraper:
 									w_unit[key] = cleaner.sub('', w_unit[key])
 							elif type(val) == dict:
 								for v_key, v_val in dict.iteritems(val):
+									print w_unit
 									replace = re.compile(v_val)
 									w_unit[key] = replace.sub(v_key, w_unit[key]).strip()
 
@@ -283,6 +293,40 @@ class scraper:
 					traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 		return units
 
+class scrapeJSON(scraper):
+
+	def pricer(self, unit):
+		return unit['price']
+
+
+	def avail(self, date):
+		non_decimal = re.compile('[^\d]+')
+		date = datetime.fromtimestamp(int(non_decimal.sub('', date))/1000 + 86400).strftime("%m/%d/%Y")
+		return date
+
+	def get_units(self, json):
+		
+		units = []
+		for available in json['results']['availableFloorPlanTypes']:
+			for package in available['availableFloorPlans']:
+				const = {}
+				for key, val in dict.iteritems(self.focus['pre_build']):
+					const[val] = package[key]
+				for finish in package['finishPackages']:
+
+					for apartment in finish['apartments']:
+						w_unit = dict(const)
+						w_unit['unit'] = apartment['apartmentNumber']
+						w_unit['sqft'] = apartment['apartmentSize']
+						w_unit['price'] = apartment['pricing']['effectiveRent']
+						w_unit['available'] = apartment['pricing']['availableDate']
+						if 'studio' in w_unit['bed'].lower():
+							w_unit['bed'] = '0'
+						else:
+							w_unit['bed'] = re.sub('[^\d.]+', '', w_unit['bed'])
+						w_unit['bath'] = re.sub('[^\d.]+', '', w_unit['bath'])
+						units.append(w_unit)
+		return units
 
 def main():
 	
@@ -294,13 +338,23 @@ def main():
 	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
 
 	args = parser.parse_args()
+	para = paradigm("perspectives.yaml", args.per[0])
 	if args.list:
-		names = paradigm("perspectives.yaml", 0)
-		for index, item in enumerate(names.jar()):
+		for index, item in enumerate(para.jar()):
 			print index, item['name']
+		sys.exit()
 	else:
-		sc = scraper("perspectives.yaml", args)
-		sc.run(args.num[0])
+		if para.focus().has_key('json'):
+
+			sc = scrapeJSON(para, args)
+
+		elif False:
+			#other subscrape types
+			pass
+		else:
+			sc = scraper(para, args)
+	sc.run(args.num[0])
+
 
 main()
 
