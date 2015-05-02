@@ -84,7 +84,7 @@ class scraper:
 			if text.status_code == 404:
 				sys.stderr.write("Status code %d. Skipping URL\n" % text.status_code)
 				return None
-			html = lxml.fromstring(text.text)
+			html = lxml.fromstring(text.text, base_url = text.url)
 
 		except KeyboardInterrupt:
 			sys.exit()
@@ -111,8 +111,8 @@ class scraper:
 						try:
 							goto = item.attrib['href']
 							if not goto.startswith('http'):goto = 'http:' + goto
-
-							return lxml.fromstring(requests.get(goto).text)
+							text = requests.get(goto)
+							return lxml.fromstring(text.text, base_url = text.url)
 						except KeyboardInterrupt:
 							sys.exit()						
 						except Exception as inst:
@@ -328,6 +328,52 @@ class scrapeJSON(scraper):
 						units.append(w_unit)
 		return units
 
+class scrapeRedirect(scraper):
+
+	def get_units(self, html):
+		links, units = [], []
+		for link in html.xpath('//li[@class]'):
+			attrib = link.attrib['class']
+			if 'grid-item' in attrib and 'mix' in attrib:
+				for item in link.xpath('.//*/text()'):
+					text = item.lower()
+					if 'available' in text and 'not' not in text:
+						links.append({'navigate': link.xpath(".//*[@href]")[0].attrib['href']})
+		for link in links:
+			const = {}
+			url = re.split('/', html.base_url[7:])[0]
+			w_html = self.load("http://%s%s" % (url, link['navigate']), 1, False)
+			for text in w_html.xpath(self.focus['pre_build']['f_root'])[0].xpath('.//text()'):
+				if 'sq' in text.lower():
+					self.focus['pre_build']['root'] = text.lower().strip()
+					break
+			for key, val in tree(self.focus['pre_build']):
+
+				const[key] = val
+			for tag in w_html.xpath(self.focus['unit']['tag']):
+				w_unit = dict(const)
+				for subtag in tag.xpath(self.focus['unit']['subtag']):
+					if len(self.focus['classIDs']) != 0:
+						string = self.focus['classIDs'].pop()
+
+						w_unit[string] = self.link(subtag)
+
+				self.focus['classIDs'] = list(self.focus['reset'])
+				for unit in units:
+					for key, val in dict.iteritems(unit):
+						unit[key] = val.strip()
+				units.append(w_unit)
+					
+
+		return units
+
+	def avail(self, i_date):
+		if self.focus['avail']['now'] in i_date.lower():
+			today = date.today()
+			return "%s/%s/%s" % (today.month, today.day, today.year)	
+		else:
+			return re.sub('\(.+\)', '', i_date).strip()
+
 def main():
 	
 	parser = argparse.ArgumentParser(description='Scrape general pricing and availability info.')
@@ -348,9 +394,9 @@ def main():
 
 			sc = scrapeJSON(para, args)
 
-		elif False:
-			#other subscrape types
-			pass
+		elif para.focus().has_key('redirect'):
+			
+			sc = scrapeRedirect(para, args)
 		else:
 			sc = scraper(para, args)
 	sc.run(args.num[0])

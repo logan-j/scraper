@@ -151,4 +151,53 @@ json:
   format: "http://api.avalonbay.com/json/reply/ApartmentSearch?communityCode=%s"
   split: '\"'
   index: !!int 1
+
+---
+
+name: 'link 53'
+
+redirect: ''
+
+reset:
+  - 'lease'
+  - 'available'
+  - 'price'
+  - 'sqft'
+  - 'unit'
+  - 'building'
+
+classIDs:
+  - 'lease'
+  - 'available'
+  - 'price'
+  - 'sqft'
+  - 'unit'
+  - 'building'
+
+pre_build:
+  f_root: '//div[@class="fpContainer"]'
+  floorPlan: ''
+  '[^\d.]+':
+    bed: !!int 0
+    bath: !!int 1
+  replace:
+    -
+      studio: '0'
+
+post_build:
+  
+
+unit:
+  navigate: False
+  explicit: False
+  tag: '//tbody/tr[@class="data"]'
+  subtag: './/td[@class]'
+
+avail:
+  now: 'now'
+
+pricer:
+  regex: '[^\d]+'
+
+
 ...
