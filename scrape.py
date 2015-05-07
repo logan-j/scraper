@@ -133,6 +133,7 @@ class scraper:
 								sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
 								return None
 					else:
+						self.output.write("")
 						sys.stderr.write(Fore.RED + "No Current Availability\n" + Fore.RESET)
 						return None
 
@@ -178,7 +179,7 @@ class scraper:
 		unit['bath'] = bath
 		price, flag = self.pricer(unit), ''
 
-		if price.endswith('*'):
+		if str(price).endswith('*'):
 			flag = '***12 MONTH PRICING UNAVAILABLE***'
 
 		return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % 	(	propID,
