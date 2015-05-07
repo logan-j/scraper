@@ -1,6 +1,7 @@
 
 from datetime import date, datetime
 from scrapetools import *
+from colorama import Fore
 import requests
 import re
 import time
@@ -8,6 +9,7 @@ import lxml.html as lxml
 import sys, traceback
 import argparse
 import json
+import math
 
 
 class scraper:
@@ -27,12 +29,11 @@ class scraper:
 
 			if self.links == None: self.links = []
 		except IOError:
-			sys.stderr.write("Link file not found.\n")
+			sys.stderr.write(Fore.RED + "Link file not found.\n" + Fore.RESET)
 	
 	def run(self, limit = 0):
 		if self.links == None or self.links == []:
-			sys.stderr.write("Please set links before running.\n")
-
+			sys.stderr.write(Fore.RED + "Please set links before running.\n" + Fore.RESET)
 			return		
 		
 		self.output.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date\n")
@@ -46,20 +47,24 @@ class scraper:
 
 			if html == None:
 				count += 1
+				self.output.write("%s\t***PAGE DID NOT LOAD***\n" % line[0])
 				continue
 		
 			units = self.get_units(html)
+			if len(units) == 0:
+				sys.stderr.write(Fore.RED + "NO UNITS FOUND\n" + Fore.RESET)
+				self.output.write("%s\t***NO UNITS FOUND***\n" % line[0])
+			else:
+				for unit in units:
+					try:		
 
-			for unit in units:
-				try:		
-
-					self.output.write(self.printer(unit, line[0]) + "\n")
-				
-				except KeyboardInterrupt:
-					sys.exit()
-				except Exception as inst:
-					sys.stderr.write("%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args))
-					traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+						self.output.write(self.printer(unit, line[0]) + "\n")
+					
+					except KeyboardInterrupt:
+						sys.exit()
+					except Exception as inst:
+						sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
+						traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
 
 			
@@ -81,20 +86,24 @@ class scraper:
 		try:
 
 			text = requests.get(url)
-			if text.status_code == 404:
-				sys.stderr.write("Status code %d. Skipping URL\n" % text.status_code)
-				return None
+			if text.status_code != 200:
+				if text.status_code >= 400:
+
+					sys.stderr.write(Fore.RED + ("Status code: %d. PAGE DID NOT LOAD; SKIPPING URL.\n" % text.status_code) + Fore.RESET)
+					return None
+				else:
+					sys.stderr.write(Fore.YELLOW + ("Status code: %d. Attempting to proceed.\n" % text.status_code) + Fore.RESET)
 			html = lxml.fromstring(text.text, base_url = text.url)
 
 		except KeyboardInterrupt:
 			sys.exit()
 		except Exception as inst:
-			sys.stderr.write(str(inst) + ": Connection Failed, try: %d\n" % tries)
+			sys.stderr.write(Fore.YELLOW + str(inst) + (": Connection Failed, try: %d\n" % tries) + Fore.RESET)
 			if tries > 3:
 				time.sleep(3)
 				return self.load(url, tries + 1, navigate)
 			else:
-				sys.stderr.write("Connection Failed, Aborting\n")
+				sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
 				return None
 
 		if navigate:
@@ -116,15 +125,15 @@ class scraper:
 						except KeyboardInterrupt:
 							sys.exit()						
 						except Exception as inst:
-							sys.stderr.write(str(inst) + ": Connection Failed, try: %d\n" % tries)
+							sys.stderr.write(Fore.YELLOW + (str(inst) + ": Connection Failed, try: %d\n" % tries) + Fore.RESET)
 							time.sleep(3)
 							if tries > 3:
 								return self.load(url, tries + 1, navigate)
 							else:
-								sys.stderr.write("Connection Failed, Aborting\n")
+								sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
 								return None
 					else:
-						sys.stderr.write("No Current Availability\n")
+						sys.stderr.write(Fore.RED + "No Current Availability\n" + Fore.RESET)
 						return None
 
 		return html
@@ -155,7 +164,7 @@ class scraper:
 		 	
 
 		except Exception as inst:
-			sys.stderr.write("%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args))
+			sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
 			traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 			flag = '*'
 	
@@ -163,14 +172,24 @@ class scraper:
 			return non_decimal.sub('', out) + flag
 
 	def printer(self, unit, propID):
-		return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % 	(	propID,
+		bath = math.floor((float(unit['bath']) * 2.0) + 0.5)/2.0
+		if bath % 1 == 0:
+			bath = int(bath)
+		unit['bath'] = bath
+		price, flag = self.pricer(unit), ''
+
+		if price.endswith('*'):
+			flag = '***12 MONTH PRICING UNAVAILABLE***'
+
+		return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % 	(	propID,
 								unit['floorPlan'],
 								unit['unit'],
 								unit['sqft'],
 								unit['bed'],
 								unit['bath'],
-								self.pricer(unit),
-								self.avail(unit['available'])
+								price,
+								self.avail(unit['available']),
+								flag
 								)
 
 	def link(self, node):
@@ -184,7 +203,7 @@ class scraper:
 				if len(temp) > 0:
 					text = min(temp, key=len)
 		except Exception as inst:
-			sys.stderr.write("%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args))
+			sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
 			traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
 
@@ -224,13 +243,12 @@ class scraper:
 				if self.focus['unit']['explicit']:
 					string = subtag.attrib[self.focus['unit']['attribute']]
 
-					for key in self.focus['classIDs'].keys():
-						if key.startswith(string):
-							temp = self.link(subtag)
-							if len(temp) > 0:
+					if self.focus['classIDs'].has_key(string):
+				
+						temp = self.link(subtag)
+						if len(temp) > 0:
 
-								w_unit[self.focus['classIDs'][key]] = temp
-							break
+							w_unit[self.focus['classIDs'][string]] = temp
 						
 
 				else:
@@ -285,11 +303,11 @@ class scraper:
 										unit['price'][1] = text
 					else:
 						if self.focus['nav']['flag'] not in b_title.lower():
-							sys.stderr.write(b_title + "\n")
+							sys.stderr.write(Fore.RED + b_title + "\n" + Fore.RESET)
 						pass
 					
 				except Exception as inst:
-					sys.stderr.write("%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args))
+					sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
 					traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 		return units
 

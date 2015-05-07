@@ -13,7 +13,7 @@ classIDs:
 
 unit:
   tag: '//tbody/tr'
-  subtag: './/td[@class]'
+  subtag: 'td[@class]'
   attribute: 'class'
   explicit: True
   navigate: True
@@ -41,6 +41,7 @@ pricer:
 name: 'link 55'
 
 classIDs:
+  addr_or_apt: 'unit'
   addr_or_apt address: 'unit'
   unit_rent: 'price'
   show_available_date: 'available'
@@ -68,7 +69,7 @@ pre_build:
     -
       studio: '0 1'
     -
-      '[^\d\s]': ' '
+      '[^\d\s.]': ' '
   '[^\d.]+':
     bed: !!int 0
     bath: !!int 1
