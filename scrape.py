@@ -60,8 +60,10 @@ class scraper:
 			else:
 				for unit in units:
 					try:		
+						output = self.printer(unit, line[0])
+						if output != None:
 
-						self.output.write(self.printer(unit, line[0]) + "\n")
+							self.output.write(output + "\n")
 					
 					except KeyboardInterrupt:
 						sys.exit()
@@ -460,7 +462,7 @@ class scrapeExplicit(scraper):
 		try:
 			propID = self.mapping[unit['location']]
 		except:
-			pass
+			return None
 		price = str(self.pricer(unit))
 		return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % 	(	propID,
 									unit['floorPlan'],
