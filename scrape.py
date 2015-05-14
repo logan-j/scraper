@@ -10,7 +10,6 @@ import sys, traceback
 import argparse
 import json
 import math
-import dryscrape
 
 
 class scraper:
@@ -90,6 +89,8 @@ class scraper:
 		if not url.startswith('http'): url = "http:" + url
 
 		if ds:
+			pass
+			"""
 			try:
 				sess = dryscrape.Session(base_url = url)
 				sess.set_attribute('auto_load_images', False)
@@ -112,7 +113,7 @@ class scraper:
 				else:
 					sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
 					return None
-
+			"""
 		else:
 
 			try:
@@ -301,7 +302,6 @@ class scraper:
 									w_unit[key] = cleaner.sub('', w_unit[key])
 							elif type(val) == dict:
 								for v_key, v_val in dict.iteritems(val):
-									print w_unit
 									replace = re.compile(v_val)
 									w_unit[key] = replace.sub(v_key, w_unit[key]).strip()
 
@@ -312,7 +312,6 @@ class scraper:
 									else:
 										w_unit[key] += " " + w_unit[item]
 					units.append(w_unit)
-					print w_unit
 					w_unit = {'set': False}
 					if not self.focus['unit']['explicit']:
 						self.focus['classIDs'] = list(self.focus['reset'])
@@ -388,10 +387,13 @@ class scrapeExplicit(scraper):
 		url = self.focus['base_url'] % (self.focus['fuzzer'], self.date[0])
 		html = None
 		try:
+			pass
+			"""
 			html = dryscrape.Session(base_url=url)
 			html.set_attribute('auto_load_images', False)
 			html.visit('')
 			time.sleep(3)
+			"""
 		except Exception as inst:
 			sys.stderr.write(Fore.RED + "Unexpected Error Attempting to Load Page. Please Try Again.\n" + Fore.RESET)
 			sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
