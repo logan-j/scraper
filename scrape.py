@@ -10,6 +10,7 @@ import sys, traceback
 import argparse
 import json
 import math
+import dryscrape
 
 
 class scraper:
@@ -17,6 +18,7 @@ class scraper:
 	def __init__(self, para, args):
 		self.context = para
 		self.focus = self.context.focus()
+		self.date = args.date
 		self.set_links(args.infile)
 		self.output = args.outfile
 	 	
@@ -30,6 +32,7 @@ class scraper:
 			if self.links == None: self.links = []
 		except IOError:
 			sys.stderr.write(Fore.RED + "Link file not found.\n" + Fore.RESET)
+			sys.exit()
 	
 	def run(self, limit = 0):
 		if self.links == None or self.links == []:
@@ -43,11 +46,11 @@ class scraper:
 		
 		for line in self.links:
 			sys.stderr.write("Working on %s: %d of %d\n" % (line[1], count, num))
-			html = self.load(line[1].strip(), 1, self.focus['unit']['navigate'])
+			html = self.load(line[1].strip(), 1, self.focus['unit']['navigate'], self.focus['unit']['dryscrape'])
 
 			if html == None:
 				count += 1
-				self.output.write("%s\t***PAGE DID NOT LOAD***\n" % line[0])
+				self.output.write("%s\t***NO CURRENT AVAILABILITY***\n" % line[0])
 				continue
 		
 			units = self.get_units(html)
@@ -81,61 +84,88 @@ class scraper:
 	"""
 
 
-	def load(self, url, tries = 1, navigate = True):
+	def load(self, url, tries = 1, navigate = True, ds = False):
 		if not url.startswith('http'): url = "http:" + url
-		try:
 
-			text = requests.get(url)
-			if text.status_code != 200:
-				if text.status_code >= 400:
-
-					sys.stderr.write(Fore.RED + ("Status code: %d. PAGE DID NOT LOAD; SKIPPING URL.\n" % text.status_code) + Fore.RESET)
-					return None
-				else:
-					sys.stderr.write(Fore.YELLOW + ("Status code: %d. Attempting to proceed.\n" % text.status_code) + Fore.RESET)
-			html = lxml.fromstring(text.text, base_url = text.url)
-
-		except KeyboardInterrupt:
-			sys.exit()
-		except Exception as inst:
-			sys.stderr.write(Fore.YELLOW + str(inst) + (": Connection Failed, try: %d\n" % tries) + Fore.RESET)
-			if tries > 3:
+		if ds:
+			try:
+				sess = dryscrape.Session(base_url = url)
+				sess.set_attribute('auto_load_images', False)
+				sess.visit('')
 				time.sleep(3)
-				return self.load(url, tries + 1, navigate)
-			else:
-				sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
-				return None
 
-		if navigate:
+				if navigate:
+					pass
+					#click logic, etc
+				else:
+					return sess.document()
 
-			for item in html.xpath(self.focus['nav']['links']):
+			except KeyboardInterrupt:
+				sys.exit()
+			except Exception as inst:
+				sys.stderr.write(Fore.YELLOW + str(inst) + (": Connection Failed, try: %d\n" % tries) + Fore.RESET)
+				if tries > 3:
+					time.sleep(3)
+					return self.load(url, tries + 1, navigate)
+				else:
+					sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
+					return None
 
-		
-				if item.text != None and self.focus['nav']['redirect_on'] in item.text.lower():
-					if self.focus.has_key('json'):
-						split = re.compile(self.focus['json']['split'])
-						loc = split.split(item.text)[self.focus['json']['index']]
-						return json.loads(requests.get(self.focus['json']['format'] % loc).text)
-					elif "href" in item.keys():
-						try:
-							goto = item.attrib['href']
-							if not goto.startswith('http'):goto = 'http:' + goto
-							text = requests.get(goto)
-							return lxml.fromstring(text.text, base_url = text.url)
-						except KeyboardInterrupt:
-							sys.exit()						
-						except Exception as inst:
-							sys.stderr.write(Fore.YELLOW + (str(inst) + ": Connection Failed, try: %d\n" % tries) + Fore.RESET)
-							time.sleep(3)
-							if tries > 3:
-								return self.load(url, tries + 1, navigate)
-							else:
-								sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
-								return None
-					else:
-						self.output.write("")
-						sys.stderr.write(Fore.RED + "No Current Availability\n" + Fore.RESET)
+		else:
+
+			try:
+
+				text = requests.get(url)
+				if text.status_code != 200:
+					if text.status_code >= 400:
+
+						sys.stderr.write(Fore.RED + ("Status code: %d. PAGE DID NOT LOAD; SKIPPING URL.\n" % text.status_code) + Fore.RESET)
 						return None
+					else:
+						sys.stderr.write(Fore.YELLOW + ("Status code: %d. Attempting to proceed.\n" % text.status_code) + Fore.RESET)
+				html = lxml.fromstring(text.text, base_url = text.url)
+
+			except KeyboardInterrupt:
+				sys.exit()
+			except Exception as inst:
+				sys.stderr.write(Fore.YELLOW + str(inst) + (": Connection Failed, try: %d\n" % tries) + Fore.RESET)
+				if tries > 3:
+					time.sleep(3)
+					return self.load(url, tries + 1, navigate)
+				else:
+					sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
+					return None
+
+			if navigate:
+
+				for item in html.xpath(self.focus['nav']['links']):
+
+			
+					if item.text != None and self.focus['nav']['redirect_on'] in item.text.lower():
+						if self.focus.has_key('json'):
+							split = re.compile(self.focus['json']['split'])
+							loc = split.split(item.text)[self.focus['json']['index']]
+							return json.loads(requests.get(self.focus['json']['format'] % loc).text)
+						elif "href" in item.keys():
+							try:
+								goto = item.attrib['href']
+								if not goto.startswith('http'):goto = 'http:' + goto
+								text = requests.get(goto)
+								return lxml.fromstring(text.text, base_url = text.url)
+							except KeyboardInterrupt:
+								sys.exit()						
+							except Exception as inst:
+								sys.stderr.write(Fore.YELLOW + (str(inst) + ": Connection Failed, try: %d\n" % tries) + Fore.RESET)
+								time.sleep(3)
+								if tries > 3:
+									return self.load(url, tries + 1, navigate)
+								else:
+									sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
+									return None
+						else:
+							self.output.write("")
+							sys.stderr.write(Fore.RED + "No Current Availability\n" + Fore.RESET)
+							return None
 
 		return html
 
@@ -177,21 +207,20 @@ class scraper:
 		if bath % 1 == 0:
 			bath = int(bath)
 		unit['bath'] = bath
-		price, flag = self.pricer(unit), ''
+		price = str(self.pricer(unit))
 
-		if str(price).endswith('*'):
-			flag = '***12 MONTH PRICING UNAVAILABLE***'
+		if price.endswith('*'):
+			price = "--"
 
-		return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % 	(	propID,
-								unit['floorPlan'],
-								unit['unit'],
-								unit['sqft'],
-								unit['bed'],
-								unit['bath'],
-								price,
-								self.avail(unit['available']),
-								flag
-								)
+		return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % 	(	propID,
+									unit['floorPlan'],
+									unit['unit'],
+									unit['sqft'],
+									unit['bed'],
+									unit['bath'],
+									price,
+									self.avail(unit['available'])
+									)
 
 	def link(self, node):
 		text = ''
@@ -212,6 +241,8 @@ class scraper:
 			goto = node.xpath('.//*[@href]')
 			if len(goto) != 0 and node.attrib[self.focus['unit']['attribute']] not in self.focus['s_nav']:
 				return [text, goto[0].attrib['href']]
+
+
 			else: return text
 
 		return text
@@ -279,6 +310,7 @@ class scraper:
 									else:
 										w_unit[key] += " " + w_unit[item]
 					units.append(w_unit)
+					print w_unit
 					w_unit = {'set': False}
 					if not self.focus['unit']['explicit']:
 						self.focus['classIDs'] = list(self.focus['reset'])
@@ -347,6 +379,101 @@ class scrapeJSON(scraper):
 						units.append(w_unit)
 		return units
 
+class scrapeExplicit(scraper):
+
+	def set_links(self, links):
+		self.links = []
+		url = self.focus['base_url'] % (self.focus['fuzzer'], self.date[0])
+		html = None
+		try:
+			html = dryscrape.Session(base_url=url)
+			html.set_attribute('auto_load_images', False)
+			html.visit('')
+			time.sleep(3)
+		except Exception as inst:
+			sys.stderr.write(Fore.RED + "Unexpected Error Attempting to Load Page. Please Try Again.\n" + Fore.RESET)
+			sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
+			traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+		mapping = {}
+		try:
+			with open(links, 'r') as input_file:
+				
+				lines = [re.split(',|\t', x) for x in input_file.readlines()]
+
+				for line in lines:
+					
+					mapping[line[2]] = line[0]
+		except IOError:
+			sys.stderr.write(Fore.RED + "Link file not found.\n" + Fore.RESET)
+			sys.exit()
+
+		self.mapping = fuzzyDic(mapping, 90)
+		if html != None:
+			for tag in html.xpath("//div[@class='unit-block']"):
+				self.links.append(['', tag.at_xpath("a[@href]").get_attr("href")])
+
+	def filter_empty(self, i_list, val = None):
+		o_list = [x.strip() for x in i_list if len(x.strip()) > 0]
+		if val != None:
+			return o_list[val]
+		else: return o_list
+
+
+	def get_units(self, html):
+		w_unit = {'available': 'now'}
+
+		text = html.xpath("//div[@class='property-details pull-left']")[0].xpath("*/text()")
+		
+		w_unit['unit'] = re.split('\s+', text[0])[1]
+		bb = re.sub('studio', '0', text[1].lower())
+		bb = re.split('[^\d.]+', bb)
+		w_unit['bed'] = bb[0]
+		w_unit['bath'] = bb[1]
+			
+		try:
+			w_unit['sqft'] = re.sub('[^\d]+', '', html.xpath("//span[@class='pull-right']")[0].text)
+		except Exception as inst:
+			w_unit['sqft'] = '--'
+
+
+		text = html.xpath("//address[@class='no-spacing']")[0].xpath(".//text()")
+
+		w_unit['location'] = self.filter_empty(text, 0)
+
+		#price
+		is_set = False
+		for tag in html.xpath("//table[@id='unit-price-table']"):
+			prices = self.filter_empty(tag.xpath(".//text()"))
+			w_unit['price'] = prices[9]
+
+
+
+
+		w_unit['floorPlan'] = "%s Bed %s Bath" % (w_unit['bed'], w_unit['bath'])
+
+		return [w_unit]
+
+	def printer(self, unit, propID):
+		propID, sqft = '--', unit['sqft']
+		if len(sqft) < 3:
+			sqft = '--'
+		try:
+			propID = self.mapping[unit['location']]
+		except:
+			pass
+		price = str(self.pricer(unit))
+		return "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % 	(	propID,
+									unit['floorPlan'],
+									unit['unit'],
+									sqft,
+									unit['bed'],
+									unit['bath'],
+									price,
+									self.avail(unit['available'])
+									)
+
+
+
 class scrapeRedirect(scraper):
 
 	def get_units(self, html):
@@ -393,14 +520,44 @@ class scrapeRedirect(scraper):
 		else:
 			return re.sub('\(.+\)', '', i_date).strip()
 
+
+	
+
 def main():
 	
 	parser = argparse.ArgumentParser(description='Scrape general pricing and availability info.')
-	parser.add_argument('-n', '--num', type=int, nargs=1, help='Limit the number of links to run to NUM links from beginning.', default=[0])
-	parser.add_argument('-p', '--per', type=int, nargs=1, help='Specify the PER-th perspective to use, indexed started from 0.', default=[0])
-	parser.add_argument('-l', '--list', action='store_true', help="List the names of all available perspective types and exit.")
-	parser.add_argument('infile', nargs='?', type=str)
-	parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
+	
+	parser.add_argument('-n', '--num', 
+		type=int, 
+		nargs=1, 
+		help='Limit the number of links to run to NUM links from beginning.', 
+		default=[0])
+
+	parser.add_argument('-p', '--per',
+		type=int,
+		nargs=1,
+		help='Specify the PER-th perspective to use, indexed started from 0.',
+		default=[0])
+
+	parser.add_argument('-l', '--list',
+		action='store_true',
+		help="List the names of all available perspective types and exit.")
+
+	parser.add_argument('infile',
+		nargs='?',
+		type=str)
+
+	parser.add_argument('outfile',
+		nargs='?',
+		type=argparse.FileType('w'),
+		default=sys.stdout)
+	today = date.today()
+	d_date = "%s/%s/%s" % (today.month, today.day, today.year)
+	parser.add_argument('-d', '--date',
+		type=str,
+		nargs=1,
+		help='Specify a DATE between today and the given input to check for availabilty.',
+		default=[d_date])
 
 	args = parser.parse_args()
 	para = paradigm("perspectives.yaml", args.per[0])
@@ -416,6 +573,11 @@ def main():
 		elif para.focus().has_key('redirect'):
 			
 			sc = scrapeRedirect(para, args)
+
+		elif para.focus().has_key('base_url'):
+
+			sc = scrapeExplicit(para, args)
+
 		else:
 			sc = scraper(para, args)
 	sc.run(args.num[0])

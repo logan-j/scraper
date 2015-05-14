@@ -17,6 +17,7 @@ unit:
   attribute: 'class'
   explicit: True
   navigate: True
+  dryscrape: False
   quan: !!int 9
 
 avail:
@@ -55,6 +56,7 @@ unit:
   attribute: 'class'
   explicit: True
   navigate: False
+  dryscrape: False
   quan: !!int 8
 
 pricer:
@@ -104,6 +106,7 @@ unit:
   subtag: './/tr/td'
   explicit: False
   navigate: False
+  dryscrape: False
   quan: !!int 7
 
 timing: 'prepost'
@@ -131,6 +134,7 @@ name: 'avalonbay'
 
 unit:
   navigate: True
+  dryscrape: False
 
 
 pre_build:
@@ -190,6 +194,7 @@ post_build:
 
 unit:
   navigate: False
+  dryscrape: False
   explicit: False
   tag: '//tbody/tr[@class="data"]'
   subtag: './/td[@class]'
@@ -200,5 +205,58 @@ avail:
 pricer:
   regex: '[^\d]+'
 
+
+---
+
+name: 'Link 97 (mac)'
+
+base_url: 'http://www.macapartments.com/search?bedroomsPlus=--&city=%s&moveInDate=%s&bathsPlus=--&term=-&minRent=--&maxRent=--&buildingOrStreet=#/?page=300'
+
+fuzzer: 'a'
+
+avail:
+  now: 'now'
+
+unit:
+  navigate: False
+  dryscrape: False
+
+pricer:
+  regex: '([^\d]+|(?<=\.)\d+)+'
+
+
+---
+
+name: '***(WORK IN PROGRESS) Aimco'
+
+classIDs:
+  bedroomsWithFloor: 'bed'
+  bathroomsWithFloor: 'bath'
+  squareFeetWithFloor: 'sqft'
+  available: 'available'
+  thickbox: 'price'
+
+timing: 'pre'
+
+pre_build:
+  f_root: 'preceding-sibling::div[@class="FPHeader "]::descendent::*/text()'
+  '\(':
+    unit: !!int 0
+    floorPlan: !!int 1
+
+avail:
+  now: 'now'
+
+unit:
+  navigate: True
+  dryscrape: True
+  explicit: True
+  tag: '//div[@class="viewInfo"]'
+  subtag: './/*[@class]'
+  attribute: 'class'
+  quan: !!int 6
+
+pricer:
+  regex: ''
 
 ...

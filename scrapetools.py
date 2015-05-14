@@ -1,6 +1,22 @@
 import yaml
 import sys
 import re
+from fuzzywuzzy import process, fuzz
+from colorama import Fore
+
+class fuzzyDic:
+	def __init__(self, mapping, tolerance):
+		self.tol = tolerance
+		self.map = dict(mapping)
+		
+
+	def __getitem__(self, key):
+		match = process.extractOne(key, self.map.keys())
+		if match[1] >= self.tol:
+			return self.map[match[0]]
+
+		raise KeyError("\'" + key + "\'" + " is not a valid key.")
+
 
 
 class tree:
