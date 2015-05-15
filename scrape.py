@@ -2,6 +2,7 @@
 from datetime import date, datetime
 from scrapetools import *
 from colorama import Fore
+from sets import Set
 import requests
 import re
 import time
@@ -10,7 +11,7 @@ import sys, traceback
 import argparse
 import json
 import math
-
+import dryscrape
 
 class scraper:
 	
@@ -51,8 +52,21 @@ class scraper:
 				count += 1
 				self.output.write("%s\t***NO CURRENT AVAILABILITY***\n" % line[0])
 				continue
-		
-			units = self.get_units(html)
+			units = []
+			try:
+				if len(line) == 3:
+					units = self.get_units(html, line[2])
+				else:
+					units = self.get_units(html)
+			
+			except Exception as inst:
+				self.output.write("%s\t***UNKNOWN ERROR***\n" % line[0])
+				sys.stderr.write(Fore.RED + "UNKNOWN ERROR PROCESSING UNITS\n" + Fore.RESET)
+				sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
+				traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+				count += 1
+				continue
+			
 			if len(units) == 0:
 				sys.stderr.write(Fore.RED + "NO UNITS FOUND\n" + Fore.RESET)
 				self.output.write("%s\t***NO UNITS FOUND***\n" % line[0])
@@ -62,7 +76,7 @@ class scraper:
 						output = self.printer(unit, line[0])
 						if output != None:
 
-							self.output.write(output + "\n")
+							self.output.write(output.encode('utf-8') + "\n")
 					
 					except KeyboardInterrupt:
 						sys.exit()
@@ -87,10 +101,8 @@ class scraper:
 
 	def load(self, url, tries = 1, navigate = True, ds = False):
 		if not url.startswith('http'): url = "http:" + url
-
+		html = None
 		if ds:
-			pass
-			"""
 			try:
 				sess = dryscrape.Session(base_url = url)
 				sess.set_attribute('auto_load_images', False)
@@ -98,10 +110,10 @@ class scraper:
 				time.sleep(3)
 
 				if navigate:
-					pass
+					return lxml.fromstring(sess.body(), base_url = url)
 					#click logic, etc
 				else:
-					return sess.document()
+					return lxml.fromstring(sess.body(), base_url = url)
 
 			except KeyboardInterrupt:
 				sys.exit()
@@ -113,7 +125,6 @@ class scraper:
 				else:
 					sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
 					return None
-			"""
 		else:
 
 			try:
@@ -176,6 +187,16 @@ class scraper:
 		if self.focus['avail']['now'] in i_date.lower():
 			today = date.today()
 			return "%s/%s/%s" % (today.month, today.day, today.year)
+		elif self.focus['avail'].has_key('month'):
+			i_date = i_date.strip()
+			i_date = i_date.split(" ")
+			i_date = " ".join(i_date[:2])
+			temp = datetime.strptime(i_date, "%b %d")
+			
+			year = date.today().year
+			if temp.month < date.today().month:
+				year += 1
+			return "%s/%s/%s" % (temp.month, temp.day, year)
 		else: return i_date
 
 	def pricer(self, unit):
@@ -241,18 +262,27 @@ class scraper:
 
 
 		if self.focus['unit']['navigate']:
-			goto = node.xpath('.//*[@href]')
-			if len(goto) != 0 and node.attrib[self.focus['unit']['attribute']] not in self.focus['s_nav']:
-				return [text, goto[0].attrib['href']]
+			if self.focus.has_key('link'):
+				
+				try:
+					goto = node.attrib[self.focus['link']['attribute']]
+					if len(goto) != 0:
+						return [text, goto]
+				except:
+					return text
+			else:
+				goto = node.xpath('.//*[@href]')
+				if len(goto) != 0 and node.attrib[self.focus['unit']['attribute']] not in self.focus['s_nav']:
+					return [text, goto[0].attrib['href']]
 
 
-			else: return text
+				else: return text
 
 		return text
 	
 	
 
-	def get_units(self, html):
+	def get_units(self, html, i_date = None):
 		units = []
 		w_unit = {'set': False}
 		for tag in html.xpath(self.focus['unit']['tag']):
@@ -272,6 +302,14 @@ class scraper:
 
 							else:
 								const[key] = self.link(tag.xpath(val)[0])
+				elif self.focus['pre_build'].has_key('m_root'):
+					
+					m_root = self.focus['pre_build']['m_root']
+					info = [x.strip() for x in tag.xpath(m_root[0])[-1].xpath(m_root[1]) if len(x.strip()) > 0]
+					for key, val in dict.iteritems(self.focus['pre_build']):
+						if 'root' not in key:
+							const[key] = info[val]
+					
 			for subtag in tag.xpath(self.focus['unit']['subtag']):
 				if len(const) > 0:
 					for key, val in dict.iteritems(const): w_unit[key] = val
@@ -321,20 +359,36 @@ class scraper:
 
 		if self.focus['unit']['navigate']:
 			for unit in units:
-				try:	
+				
+				try:
 					p_range = unit['price'][0]
-					b_title = unit['navigate'][0]
-					b_link = unit['navigate'][1]	
+
+					if type(unit['navigate']) == str:
+						b_title = "No Button Title"
+						vals = re.split('[^\d]+', re.split(';', unit['price'][1])[1])
+						b_link = unit['navigate'] % ("http://" + re.split('/', html.base_url)[2], vals[1], vals[2])
+
+					else:	
+						b_title = unit['navigate'][0]
+						b_link = unit['navigate'][1]	
 					if len(p_range) > 8:
 
 						if self.focus['nav']['flag'] in b_title.lower() and b_link != '':
 							html = self.load(b_link, 1, False)
 							if html != None:
-								for tag in html.xpath(self.focus['nav']['location']):
-									text = tag.text
-									if text != None and self.focus['pricer']['r_identifier'] in text.lower():
-										unit['set'] = True
-										unit['price'][1] = text
+								if self.focus['pricer'].has_key('text'):
+									prices = html.xpath(self.focus['nav']['location'])
+									for i, price in enumerate(prices, 0):
+										if price != None and self.focus['pricer']['r_identifier'] in price.lower():
+											unit['set'] = True
+											unit['price'][1] = prices[i + self.focus['pricer']['offset']]
+											
+								else:
+									for tag in html.xpath(self.focus['nav']['location']):
+										text = tag.text
+										if text != None and self.focus['pricer']['r_identifier'] in text.lower():
+											unit['set'] = True
+											unit['price'][1] = text
 					else:
 						if self.focus['nav']['flag'] not in b_title.lower():
 							sys.stderr.write(Fore.RED + b_title + "\n" + Fore.RESET)
@@ -356,7 +410,7 @@ class scrapeJSON(scraper):
 		date = datetime.fromtimestamp(int(non_decimal.sub('', date))/1000 + 86400).strftime("%m/%d/%Y")
 		return date
 
-	def get_units(self, json):
+	def get_units(self, json, i_date = None):
 		
 		units = []
 		for available in json['results']['availableFloorPlanTypes']:
@@ -384,21 +438,9 @@ class scrapeExplicit(scraper):
 
 	def set_links(self, links):
 		self.links = []
-		url = self.focus['base_url'] % (self.focus['fuzzer'], self.date[0])
-		html = None
-		try:
-			pass
-			"""
-			html = dryscrape.Session(base_url=url)
-			html.set_attribute('auto_load_images', False)
-			html.visit('')
-			time.sleep(3)
-			"""
-		except Exception as inst:
-			sys.stderr.write(Fore.RED + "Unexpected Error Attempting to Load Page. Please Try Again.\n" + Fore.RESET)
-			sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
-			traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
-		mapping = {}
+
+		checked, mapping = Set(), {}
+		
 		try:
 			with open(links, 'r') as input_file:
 				
@@ -412,10 +454,32 @@ class scrapeExplicit(scraper):
 			sys.exit()
 
 		self.mapping = fuzzyDic(mapping, 90)
-		if html != None:
-			for tag in html.xpath("//div[@class='unit-block']"):
-				self.links.append(['', tag.at_xpath("a[@href]").get_attr("href")])
 
+
+		for i, dates in enumerate(iter_dates(self.date[0]), 1):
+			sys.stderr.write(Fore.YELLOW + "Gathering Date: %s\n" % dates + Fore.RESET)
+			url = self.focus['base_url'] % (self.focus['fuzzer'], dates)
+			html = None
+			try:
+				
+				html = dryscrape.Session(base_url=url)
+				html.set_attribute('auto_load_images', False)
+				html.visit('')
+				time.sleep(3)
+				
+			except Exception as inst:
+				sys.stderr.write(Fore.RED + "Unexpected Error Attempting to Load Page. Please Try Again.\n" + Fore.RESET)
+				sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
+				traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+
+			if html != None:
+				for tag in html.xpath("//div[@class='unit-block']"):
+					t_url = re.split('[?]', tag.at_xpath("a[@href]").get_attr("href"))[0]
+					
+					if t_url not in checked:
+						checked.add(t_url)
+						self.links.append(['', t_url, dates])
+		
 	def filter_empty(self, i_list, val = None):
 		o_list = [x.strip() for x in i_list if len(x.strip()) > 0]
 		if val != None:
@@ -423,8 +487,8 @@ class scrapeExplicit(scraper):
 		else: return o_list
 
 
-	def get_units(self, html):
-		w_unit = {'available': 'now'}
+	def get_units(self, html, i_date = 'now'):
+		w_unit = {'available': i_date}
 
 		text = html.xpath("//div[@class='property-details pull-left']")[0].xpath("*/text()")
 		
@@ -525,7 +589,7 @@ class scrapeRedirect(scraper):
 			return re.sub('\(.+\)', '', i_date).strip()
 
 
-	
+
 
 def main():
 	

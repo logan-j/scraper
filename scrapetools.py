@@ -1,8 +1,23 @@
 import yaml
 import sys
 import re
+import time
+from datetime import date, datetime
 from fuzzywuzzy import process, fuzz
 from colorama import Fore
+
+
+def iter_dates(e_date, step = 1):
+
+	goal = time.mktime(datetime.strptime(e_date, "%m/%d/%Y").timetuple()) + 86400
+
+	i_time = int(time.time())
+
+	while(i_time < goal):
+		o_date = datetime.fromtimestamp(i_time)
+		yield "%s/%s/%s" % (o_date.month, o_date.day, o_date.year)
+		i_time += 86400 * step
+
 
 class fuzzyDic:
 	def __init__(self, mapping, tolerance):

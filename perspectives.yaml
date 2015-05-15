@@ -236,27 +236,48 @@ classIDs:
   available: 'available'
   thickbox: 'price'
 
-timing: 'pre'
+timing: 'prepost'
 
 pre_build:
-  f_root: 'preceding-sibling::div[@class="FPHeader "]::descendent::*/text()'
-  '\(':
-    unit: !!int 0
-    floorPlan: !!int 1
+  m_root:
+    - 'preceding-sibling::div[@class="FPHeader "] | preceding-sibling::div[@class="FPHeader"] | preceding-sibling::div[@class="FPHeaderExtra "]'
+    - 'descendant::*/text()'
+  unit: !!int 0
+  floorPlan: !!int 1
+
+post_build:
+  floorPlan: '[()]'
+  navigate: '&%s/apartments/pricingGrid.do?pid=%s&uid=%s'
+  bed:
+    '0': 'studio'
+  unit: 'Apt '
 
 avail:
   now: 'now'
+  month: True
+
+link:
+  attribute: 'onclick'
+
+nav:
+  flag: 'no'
+  location: '//tr/td/*/text()'
+
+
 
 unit:
   navigate: True
   dryscrape: True
   explicit: True
   tag: '//div[@class="viewInfo"]'
-  subtag: './/*[@class]'
+  subtag: './/div[@class="priceSection"]/ul[@class="pricing"]/*[@class]'
   attribute: 'class'
-  quan: !!int 6
+  quan: !!int 8
 
 pricer:
-  regex: ''
+  regex: '[^\d]+'
+  r_identifier: '12 month'
+  text: True
+  offset: !!int 1
 
 ...
