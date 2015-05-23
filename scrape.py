@@ -11,7 +11,7 @@ import sys, traceback
 import argparse
 import json
 import math
-import dryscrape
+from selenium import webdriver
 
 class scraper:
 	
@@ -104,16 +104,17 @@ class scraper:
 		html = None
 		if ds:
 			try:
-				sess = dryscrape.Session(base_url = url)
-				sess.set_attribute('auto_load_images', False)
-				sess.visit('')
+				sess = webdriver.PhantomJS()
+				sess.get(url)
 				time.sleep(3)
+				source = sess.page_source
+				sess.quit()
 
 				if navigate:
-					return lxml.fromstring(sess.body(), base_url = url)
+					return lxml.fromstring(source, base_url = url)
 					#click logic, etc
 				else:
-					return lxml.fromstring(sess.body(), base_url = url)
+					return lxml.fromstring(source, base_url = url)
 
 			except KeyboardInterrupt:
 				sys.exit()
@@ -461,11 +462,13 @@ class scrapeExplicit(scraper):
 			url = self.focus['base_url'] % (self.focus['fuzzer'], dates)
 			html = None
 			try:
-				
-				html = dryscrape.Session(base_url=url)
-				html.set_attribute('auto_load_images', False)
-				html.visit('')
+				sess = webdriver.PhantomJS()
+				sess.get(url)
 				time.sleep(3)
+				source = sess.page_source
+				sess.quit()
+
+				html = lxml.fromstring(source)
 				
 			except Exception as inst:
 				sys.stderr.write(Fore.RED + "Unexpected Error Attempting to Load Page. Please Try Again.\n" + Fore.RESET)
@@ -474,7 +477,7 @@ class scrapeExplicit(scraper):
 
 			if html != None:
 				for tag in html.xpath("//div[@class='unit-block']"):
-					t_url = re.split('[?]', tag.at_xpath("a[@href]").get_attr("href"))[0]
+					t_url = re.split('[?]', tag.xpath("a[@href]")[0].attrib["href"])[0]
 					
 					if t_url not in checked:
 						checked.add(t_url)
