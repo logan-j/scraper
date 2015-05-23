@@ -208,7 +208,7 @@ pricer:
 
 ---
 
-name: '***(WORK IN PROGRESS) Link 97 (mac)***'
+name: 'Link 97 (mac)'
 
 base_url: 'http://www.macapartments.com/search?bedroomsPlus=--&city=%s&moveInDate=%s&bathsPlus=--&term=-&minRent=--&maxRent=--&buildingOrStreet=#/?page=300'
 
@@ -227,7 +227,7 @@ pricer:
 
 ---
 
-name: '***(WORK IN PROGRESS) Aimco***'
+name: 'Aimco'
 
 classIDs:
   bedroomsWithFloor: 'bed'
