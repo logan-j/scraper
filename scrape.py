@@ -3,6 +3,7 @@ from datetime import date, datetime
 from scrapetools import *
 from colorama import Fore
 from sets import Set
+from selenium import webdriver
 import requests
 import re
 import time
@@ -11,7 +12,7 @@ import sys, traceback
 import argparse
 import json
 import math
-from selenium import webdriver
+
 
 class scraper:
 	
