@@ -4,6 +4,9 @@ from scrapetools import *
 from colorama import Fore
 from sets import Set
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import requests
 import re
 import time
@@ -107,10 +110,15 @@ class scraper:
 			try:
 				sess = webdriver.PhantomJS()
 				sess.get(url)
-				time.sleep(3)
-				source = sess.page_source
-				sess.quit()
+				try:
+					element = WebDriverWait(sess, 10).until(
+						EC.presence_of_element_located((By.XPATH, self.focus['unit']['tag'])))
+					time.sleep(2)
+				except Exception as inst:
+					pass
 
+				source = sess.page_source
+				html = lxml.fromstring(source)
 				if navigate:
 					return lxml.fromstring(source, base_url = url)
 					#click logic, etc
@@ -127,6 +135,8 @@ class scraper:
 				else:
 					sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
 					return None
+			finally:
+				sess.quit()
 		else:
 
 			try:
@@ -465,16 +475,22 @@ class scrapeExplicit(scraper):
 			try:
 				sess = webdriver.PhantomJS()
 				sess.get(url)
-				time.sleep(3)
-				source = sess.page_source
-				sess.quit()
+				try:
+					element = WebDriverWait(sess, 10).until(
+						EC.presence_of_element_located((By.XPATH, self.focus['unit']['tag'])))
+					time.sleep(2)
+				except Exception as inst:
+					pass
 
+				source = sess.page_source
 				html = lxml.fromstring(source)
 				
 			except Exception as inst:
 				sys.stderr.write(Fore.RED + "Unexpected Error Attempting to Load Page. Please Try Again.\n" + Fore.RESET)
 				sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
 				traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+			finally:
+				sess.quit()
 
 			if html != None:
 				for tag in html.xpath("//div[@class='unit-block']"):

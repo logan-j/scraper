@@ -220,9 +220,11 @@ avail:
 unit:
   navigate: False
   dryscrape: False
+  tag: "//div[@class='unit-block']"
 
 pricer:
   regex: '([^\d]+|(?<=\.)\d+)+'
+
 
 
 ---
