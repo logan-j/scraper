@@ -233,8 +233,11 @@ name: 'Aimco'
 
 classIDs:
   bedroomsWithFloor: 'bed'
+  bedrooms: 'bed'
+  bathrooms: 'bath'
   bathroomsWithFloor: 'bath'
   squareFeetWithFloor: 'sqft'
+  squareFeet: 'sqft'
   available: 'available'
   thickbox: 'price'
 

@@ -23,6 +23,7 @@ class scraper:
 		self.context = para
 		self.focus = self.context.focus()
 		self.date = args.date
+		self.sess = None
 		self.set_links(args.infile)
 		self.output = args.outfile
 	 	
@@ -108,16 +109,17 @@ class scraper:
 		html = None
 		if ds:
 			try:
-				sess = webdriver.PhantomJS()
-				sess.get(url)
+				if self.sess == None:
+					self.sess = webdriver.PhantomJS()
+				self.sess.get(url)
 				try:
-					element = WebDriverWait(sess, 10).until(
+					element = WebDriverWait(self.sess, 10).until(
 						EC.presence_of_element_located((By.XPATH, self.focus['unit']['tag'])))
 					time.sleep(2)
 				except Exception as inst:
 					pass
 
-				source = sess.page_source
+				source = self.sess.page_source
 				html = lxml.fromstring(source)
 				if navigate:
 					return lxml.fromstring(source, base_url = url)
@@ -126,6 +128,7 @@ class scraper:
 					return lxml.fromstring(source, base_url = url)
 
 			except KeyboardInterrupt:
+				self.sess.quit()
 				sys.exit()
 			except Exception as inst:
 				sys.stderr.write(Fore.YELLOW + str(inst) + (": Connection Failed, try: %d\n" % tries) + Fore.RESET)
@@ -135,8 +138,7 @@ class scraper:
 				else:
 					sys.stderr.write(Fore.RED + "Connection Failed, Aborting\n" + Fore.RESET)
 					return None
-			finally:
-				sess.quit()
+			
 		else:
 
 			try:
@@ -473,29 +475,31 @@ class scrapeExplicit(scraper):
 			url = self.focus['base_url'] % (self.focus['fuzzer'], dates)
 			html = None
 			try:
-				sess = webdriver.PhantomJS()
-				sess.get(url)
+				if self.sess == None:
+					self.sess = webdriver.PhantomJS()
+				self.sess.get(url)
 				try:
-					element = WebDriverWait(sess, 10).until(
+					element = WebDriverWait(self.sess, 10).until(
 						EC.presence_of_element_located((By.XPATH, self.focus['unit']['tag'])))
 					time.sleep(2)
 				except Exception as inst:
 					pass
 
-				source = sess.page_source
+				source = self.sess.page_source
 				html = lxml.fromstring(source)
-				
+			except KeyboardInterrupt:
+				self.sess.quit()
+				sys.exit()	
 			except Exception as inst:
 				sys.stderr.write(Fore.RED + "Unexpected Error Attempting to Load Page. Please Try Again.\n" + Fore.RESET)
 				sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
 				traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
-			finally:
-				sess.quit()
+			
 
 			if html != None:
 				for tag in html.xpath("//div[@class='unit-block']"):
 					t_url = re.split('[?]', tag.xpath("a[@href]")[0].attrib["href"])[0]
-					
+					print t_url
 					if t_url not in checked:
 						checked.add(t_url)
 						self.links.append(['', t_url, dates])
@@ -654,19 +658,19 @@ def main():
 			print index, item['name']
 		sys.exit()
 	else:
-		if para.focus().has_key('json'):
+		if para.focus().has_key('json'): 		#AVALON BAY
 
 			sc = scrapeJSON(para, args)
 
-		elif para.focus().has_key('redirect'):
+		elif para.focus().has_key('redirect'): 	#LINK 53
 			
 			sc = scrapeRedirect(para, args)
 
-		elif para.focus().has_key('base_url'):
+		elif para.focus().has_key('base_url'): 	#MAC
 
 			sc = scrapeExplicit(para, args)
 
-		else:
+		else:									#LINK 8, LINK 55, LINK 96, AIMCO
 			sc = scraper(para, args)
 	sc.run(args.num[0])
 
