@@ -334,9 +334,8 @@ class scraper:
 				
 						temp = self.link(subtag)
 						if len(temp) > 0:
-
 							w_unit[self.focus['classIDs'][string]] = temp
-						
+
 
 				else:
 					if len(self.focus['classIDs']) != 0:
@@ -499,7 +498,6 @@ class scrapeExplicit(scraper):
 			if html != None:
 				for tag in html.xpath("//div[@class='unit-block']"):
 					t_url = re.split('[?]', tag.xpath("a[@href]")[0].attrib["href"])[0]
-					print t_url
 					if t_url not in checked:
 						checked.add(t_url)
 						self.links.append(['', t_url, dates])
