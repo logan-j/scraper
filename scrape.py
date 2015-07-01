@@ -17,7 +17,7 @@ import json
 import math
 
 
-class scraper:
+class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 	
 	def __init__(self, para, args):
 		self.context = para
@@ -412,7 +412,8 @@ class scraper:
 					traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 		return units
 
-class scrapeJSON(scraper):
+
+class scrapeJSON(scraper): #Avalon Bay
 
 	def pricer(self, unit):
 		return unit['price']
@@ -447,7 +448,7 @@ class scrapeJSON(scraper):
 						units.append(w_unit)
 		return units
 
-class scrapeExplicit(scraper):
+class scrapeExplicit(scraper): #MAC
 
 	def set_links(self, links):
 		self.links = []
@@ -564,7 +565,7 @@ class scrapeExplicit(scraper):
 
 
 
-class scrapeRedirect(scraper):
+class scrapeRedirect(scraper): #LINK 53
 
 	def get_units(self, html):
 		links, units = [], []

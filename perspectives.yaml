@@ -285,4 +285,40 @@ pricer:
   text: True
   offset: !!int 1
 
+
+---
+
+name: '***(WORK IN PROGRESS) Link 1***'
+
+url1: '/oleapplication.aspx?stepname=Apartments&MoveInDate=&myOlePropertyId='
+url2: '/rcLoadContent.ashx?contentclass=availableunits&MoveInDate=&myOlePropertyId='
+
+unit:
+  navigate: True
+  
+
+pre_build:
+
+
+---
+
+name: '***(WORK IN PROGRESS) Link 17***'
+
+---
+
+name: '***(WORK IN PROGRESS) Link 39***'
+
+---
+
+name: '***(WORK IN PROGRESS) Link 30***'
+
+---
+
+name: '***(WORK IN PROGRESS) Link 20***'
+
+---
+
+name: '***(WORK IN PROGRESS) Link 21***'
+
+
 ...
