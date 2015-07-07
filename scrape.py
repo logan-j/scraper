@@ -8,10 +8,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import requests
+import subprocess
 import re
 import time
 import lxml.html as lxml
-import sys, traceback
+import sys
+import traceback
 import argparse
 import json
 import math
@@ -612,67 +614,4 @@ class scrapeRedirect(scraper): #LINK 53
 			return re.sub('\(.+\)', '', i_date).strip()
 
 
-
-
-def main():
-	
-	parser = argparse.ArgumentParser(description='Scrape general pricing and availability info.')
-	
-	parser.add_argument('-n', '--num', 
-		type=int, 
-		nargs=1, 
-		help='Limit the number of links to run to NUM links from beginning.', 
-		default=[0])
-
-	parser.add_argument('-p', '--per',
-		type=int,
-		nargs=1,
-		help='Specify the PER-th perspective to use, indexed started from 0.',
-		default=[0])
-
-	parser.add_argument('-l', '--list',
-		action='store_true',
-		help="List the names of all available perspective types and exit.")
-
-	parser.add_argument('infile',
-		nargs='?',
-		type=str)
-
-	parser.add_argument('outfile',
-		nargs='?',
-		type=argparse.FileType('w'),
-		default=sys.stdout)
-	today = date.today()
-	d_date = "%s/%s/%s" % (today.month, today.day, today.year)
-	parser.add_argument('-d', '--date',
-		type=str,
-		nargs=1,
-		help='Specify a DATE between today and the given input to check for availabilty.',
-		default=[d_date])
-
-	args = parser.parse_args()
-	para = paradigm("perspectives.yaml", args.per[0])
-	if args.list:
-		for index, item in enumerate(para.jar()):
-			print index, item['name']
-		sys.exit()
-	else:
-		if para.focus().has_key('json'): 		#AVALON BAY
-
-			sc = scrapeJSON(para, args)
-
-		elif para.focus().has_key('redirect'): 	#LINK 53
-			
-			sc = scrapeRedirect(para, args)
-
-		elif para.focus().has_key('base_url'): 	#MAC
-
-			sc = scrapeExplicit(para, args)
-
-		else:									#LINK 8, LINK 55, LINK 96, AIMCO
-			sc = scraper(para, args)
-	sc.run(args.num[0])
-
-
-main()
 
