@@ -104,7 +104,7 @@ class scraper:
 	"""
 
 
-	def load(self, url, tries = 1, navigate = True, ds = False):
+	def load(self, url, tries=1, navigate=True, ds=None):
 		if not url.startswith('http'): url = "http:" + url
 		html = None
 		if ds:
@@ -113,19 +113,19 @@ class scraper:
 					self.sess = webdriver.PhantomJS()
 				self.sess.get(url)
 				try:
-					element = WebDriverWait(self.sess, 10).until(
-						EC.presence_of_element_located((By.XPATH, self.focus['unit']['tag'])))
+					element = WebDriverWait(self.sess, 20).until(
+						EC.presence_of_element_located((By.XPATH, ds)))
 					time.sleep(2)
 				except Exception as inst:
 					pass
 
 				source = self.sess.page_source
-				html = lxml.fromstring(source)
+				html = lxml.fromstring(source, base_url=url)
 				if navigate:
-					return lxml.fromstring(source, base_url = url)
+					return html
 					#click logic, etc
 				else:
-					return lxml.fromstring(source, base_url = url)
+					return html
 
 			except KeyboardInterrupt:
 				self.sess.quit()
@@ -142,7 +142,6 @@ class scraper:
 		else:
 
 			try:
-
 				text = requests.get(url)
 				if text.status_code != 200:
 					if text.status_code >= 400:
@@ -387,17 +386,21 @@ class scraper:
 					if len(p_range) > 8:
 
 						if self.focus['nav']['flag'] in b_title.lower() and b_link != '':
-							html = self.load(b_link, 1, False)
-							if html != None:
+							if self.focus['unit'].has_key('s_dryscrape'):
+								s_html = self.load(b_link, 1, False, self.focus['unit']['s_dryscrape'])
+							else:
+								s_html = self.load(b_link, 1, False)
+							
+							if s_html != None:
 								if self.focus['pricer'].has_key('text'):
-									prices = html.xpath(self.focus['nav']['location'])
+									prices = s_html.xpath(self.focus['nav']['location'])
 									for i, price in enumerate(prices, 0):
 										if price != None and self.focus['pricer']['r_identifier'] in price.lower():
 											unit['set'] = True
 											unit['price'][1] = prices[i + self.focus['pricer']['offset']]
 											
 								else:
-									for tag in html.xpath(self.focus['nav']['location']):
+									for tag in s_html.xpath(self.focus['nav']['location']):
 										text = tag.text
 										if text != None and self.focus['pricer']['r_identifier'] in text.lower():
 											unit['set'] = True

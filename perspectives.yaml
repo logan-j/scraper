@@ -272,7 +272,8 @@ nav:
 
 unit:
   navigate: True
-  dryscrape: True
+  dryscrape: '//div[@class="viewInfo"]'
+  s_dryscrape: '//div[@id="displayPricingGridTable"]'
   explicit: True
   tag: '//div[@class="viewInfo"]'
   subtag: './/div[@class="priceSection"]/ul[@class="pricing"]/*[@class]'
