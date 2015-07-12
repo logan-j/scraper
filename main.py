@@ -103,9 +103,13 @@ def main():
 				while(list(Set([x.poll() for x in processes])) != [0]):
 					time.sleep(5)
 				outputs = glob("tmp/output/*.csv")
+				args.outfile.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date\n")
+
 				for out in outputs:
 					with open(f, 'r') as o_file:
-						args.outfile.write(o_file.read())
+						for line in o_file.readlines()[1:]:
+
+							args.outfile.write(line)
 				shutil.rmtree('tmp')
 			except Exception as inst:
 				sys.stderr.write("Error while processing output: %s." % str(inst))
