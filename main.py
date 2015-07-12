@@ -1,10 +1,14 @@
 from scrapetools import *
 from scrape import *
+from glob import glob
+from sets import Set
+import re
 import subprocess
 import argparse
 import sys
 import traceback
 import os
+import shutil
 
 def main():
 	
@@ -26,13 +30,18 @@ def main():
 		action='store_true',
 		help="List the names of all available perspective types and exit.")
 
+	parser.add_argument('-c', '--conglomerate',
+		action='store_true',
+		help='After the combined input file finishes, it cleans the temporary directory and combines the outputs',
+		default=False)
+
 	parser.add_argument('infile',
 		nargs='?',
 		type=str)
 
 	parser.add_argument('outfile',
 		nargs='?',
-		type=argparse.FileType('w'),
+		type=argparse.FileType('w+'),
 		default=sys.stdout)
 	today = date.today()
 	d_date = "%s/%s/%s" % (today.month, today.day, today.year)
@@ -69,11 +78,38 @@ def main():
 			with open('tmp/%s.csv' % key, 'w') as o_file:
 				o_file.write("".join(val))
 
+		files = glob("tmp/*.csv")
+		mapping = 	{
+					"link 8": 0, "link 55": 1, 
+					"link 96": 2, "avalonbay": 3, 
+					"link 53": 4, "link 97": 5, 
+					"mac": 5, "aimco": 6
+					}
 
+		processes = []
+
+		for f in files:
+			name = re.split("/|.", f)[1]
+			persp = mapping.get(name)
+			if persp != None:
+
+				processes.append(subprocess.call(['python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)], shell=True))
+
+			else:
+				sys.stderr.write("Unsupported Link Type: %s.\nIf this is in Error, please check link type name.\n" % name)
 		#subprocess.Popen(['python scrape.py ', shell=True])
-
-
-		
+		if args.conglomerate:
+			try:
+				while(list(Set([x.poll() for x in processes])) != [0]):
+					time.sleep(5)
+				outputs = glob("tmp/output/*.csv")
+				for out in outputs:
+					with open(f, 'r') as o_file:
+						args.outfile.write(o_file.read())
+				shutil.rmtree('tmp')
+			except Exception as inst:
+				sys.stderr.write("Error while processing output: %s." % str(inst))
+			
 		
 		
 

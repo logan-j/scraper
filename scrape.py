@@ -26,6 +26,7 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 		self.focus = self.context.focus()
 		self.date = args.date
 		self.sess = None
+		self.infile = args.infile
 		self.set_links(args.infile)
 		self.output = args.outfile
 	 	
@@ -96,6 +97,17 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 
 			if count == limit: break		
 			count +=1
+		if len(self.links[0]) == 3:
+			self.output.seek(0)
+			p_out = Set([re.split("\t", x)[0] for x in self.output.readlines()])
+			p_in = Set()
+			with open(self.infile, 'r') as r_file:
+				for line in r_file.readlines():
+					p_in.add(re.split("\t|,", line)[0])
+			for item in list(p_in - p_out):
+				self.output.write("%s\t***NO UNITS FOUND***\n" % item)
+
+
 
 	"""
 	def sample(self):
