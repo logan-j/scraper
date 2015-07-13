@@ -69,7 +69,7 @@ def main():
 						out[link_type].append(line)
 					else:
 						out[link_type] = [line]
-		except IOException as inst:
+		except Exception as inst:
 			sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
 			traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 		try:
@@ -79,8 +79,12 @@ def main():
 			sys.stderr.write("Cannot create 'tmp' directory. Please try again.\n")
 
 		for key, val in dict.iteritems(out):
-			with open('tmp/%s.csv' % key, 'w') as o_file:
-				o_file.write("".join(val))
+			try:
+				with open('tmp/%s.csv' % key, 'w') as o_file:
+					o_file.write("".join(val))
+			except Exception as inst:
+				sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
+				traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
 		files = glob("tmp/*.csv")
 		mapping = 	{
@@ -97,15 +101,17 @@ def main():
 			persp = mapping.get(name)
 
 			if persp != None:
-				print 'python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)
-				processes.append(subprocess.Popen(['python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)], shell=True))
+				try:
+					processes.append(subprocess.Popen(['python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)], shell=True))
+				except Exception as inst:
+					sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
+					traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 			else:
 				sys.stderr.write("Unsupported Link Type: %s.\nIf this is in Error, please check link type name.\n" % name)
 		if args.conglomerate:
 			try:
 				while(list(Set([x.poll() for x in processes])) != [0]):
 					time.sleep(5)
-				print "HERE"
 				outputs = glob("tmp/output/*.csv")
 				args.outfile.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date\n")
 
