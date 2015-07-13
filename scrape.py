@@ -127,7 +127,7 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 					self.sess = webdriver.PhantomJS()
 				self.sess.get(url)
 				try:
-					element = WebDriverWait(self.sess, 20).until(
+					element = WebDriverWait(self.sess, 30).until(
 						EC.presence_of_element_located((By.XPATH, ds)))
 					time.sleep(2)
 				except Exception as inst:

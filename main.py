@@ -63,7 +63,7 @@ def main():
 		with open(args.infile, "r") as infile:
 			for line in infile.readlines():
 				cells = re.split(",|\t", line)
-				link_type = cells[3].lower().strip()
+				link_type = re.sub("\W", '', cells[3].lower().strip())
 				if out.has_key(link_type):
 					out[link_type].append(line)
 				else:
@@ -80,24 +80,22 @@ def main():
 
 		files = glob("tmp/*.csv")
 		mapping = 	{
-					"link 8": 0, "link 55": 1, 
-					"link 96": 2, "avalonbay": 3, 
-					"link 53": 4, "link 97": 5, 
+					"link8": 0, "link55": 1, 
+					"link96": 2, "avalonbay": 3, 
+					"link53": 4, "link 97": 5, 
 					"mac": 5, "aimco": 6
 					}
 
 		processes = []
 
 		for f in files:
-			name = re.split("/|\.", f)[1]
+			name = re.split("/|\.|\\\\", f)[1]
 			persp = mapping.get(name)
 			if persp != None:
 
-				processes.append(subprocess.call(['python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)], shell=True))
-
+				processes.append(subprocess.Popen(['python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)], shell=True))
 			else:
 				sys.stderr.write("Unsupported Link Type: %s.\nIf this is in Error, please check link type name.\n" % name)
-		#subprocess.Popen(['python scrape.py ', shell=True])
 		if args.conglomerate:
 			try:
 				while(list(Set([x.poll() for x in processes])) != [0]):
