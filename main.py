@@ -89,7 +89,7 @@ def main():
 		processes = []
 
 		for f in files:
-			name = re.split("/|.", f)[1]
+			name = re.split("/|\.", f)[1]
 			persp = mapping.get(name)
 			if persp != None:
 
