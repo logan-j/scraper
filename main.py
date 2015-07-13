@@ -105,6 +105,7 @@ def main():
 			try:
 				while(list(Set([x.poll() for x in processes])) != [0]):
 					time.sleep(5)
+				print "HERE"
 				outputs = glob("tmp/output/*.csv")
 				args.outfile.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date\n")
 
