@@ -95,8 +95,9 @@ def main():
 		for f in files:
 			name = re.split("/|\.|\\\\", f)[1]
 			persp = mapping.get(name)
-			if persp != None:
 
+			if persp != None:
+				print 'python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)
 				processes.append(subprocess.Popen(['python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)], shell=True))
 			else:
 				sys.stderr.write("Unsupported Link Type: %s.\nIf this is in Error, please check link type name.\n" % name)
