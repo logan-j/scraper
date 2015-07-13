@@ -60,14 +60,18 @@ def main():
 	
 	elif args.per[0] < 0:
 		out = {}
-		with open(args.infile, "r") as infile:
-			for line in infile.readlines():
-				cells = re.split(",|\t", line)
-				link_type = re.sub("\W", '', cells[3].lower().strip())
-				if out.has_key(link_type):
-					out[link_type].append(line)
-				else:
-					out[link_type] = [line]
+		try:
+			with open(args.infile, "r") as infile:
+				for line in infile.readlines():
+					cells = re.split(",|\t", line)
+					link_type = re.sub("\W", '', cells[3].lower().strip())
+					if out.has_key(link_type):
+						out[link_type].append(line)
+					else:
+						out[link_type] = [line]
+		except IOException as inst:
+			sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
+			traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 		try:
 			if not os.path.exists("tmp/output"):
 				os.makedirs("tmp/output")
