@@ -108,7 +108,7 @@ def main():
 
 			if persp != None:
 				try:
-					'python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)
+					print 'python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)
 					processes.append(subprocess.Popen(['python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)], shell=True))
 				except Exception as inst:
 					sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
