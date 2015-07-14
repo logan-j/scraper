@@ -61,6 +61,7 @@ def main():
 	elif args.per[0] < 0:
 		out = {}
 		print "Reading infile..."
+		time.sleep(1)
 		try:
 			with open(args.infile, "r") as infile:
 				for line in infile.readlines():
@@ -74,12 +75,16 @@ def main():
 			sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
 			traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 		print "Making directories..."
+		time.sleep(1)
+
 		try:
 			if not os.path.exists("tmp/output"):
 				os.makedirs("tmp/output")
 		except Exception as inst:
 			sys.stderr.write("Cannot create 'tmp' directory. Please try again.\n")
 		print "Making temporary files..."
+		time.sleep(1)
+
 		for key, val in dict.iteritems(out):
 			try:
 				with open('tmp/%s.csv' % key, 'w') as o_file:
@@ -88,6 +93,8 @@ def main():
 				sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
 				traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 		print "Reading temporary files..."
+		time.sleep(1)
+
 		files = glob("tmp/*.csv")
 		mapping = 	{
 					"link8": 0, "link55": 1, 
@@ -98,10 +105,14 @@ def main():
 
 		processes = []
 		print "Formulating temp file names..."
+		time.sleep(1)
+
 		for f in files:
 			name = re.split("/|\.|\\\\", f)[1]
 			persp = mapping.get(name)
 			print "Spawning process..."
+			time.sleep(1)
+
 			if persp != None:
 				try:
 					processes.append(subprocess.Popen(['python main.py -p %d %s %s' % (persp, f, 'tmp/output/%s.csv' % name)], shell=True))
@@ -111,6 +122,8 @@ def main():
 			else:
 				sys.stderr.write("Unsupported Link Type: %s.\nIf this is in Error, please check link type name.\n" % name)
 		print "Attempting conglomeration..."
+		time.sleep(1)
+
 		if args.conglomerate:
 			try:
 				while(list(Set([x.poll() for x in processes])) != [0]):
