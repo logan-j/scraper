@@ -62,7 +62,7 @@ unit:
 pricer:
   regex: '([^\d]+|(?<=\.)\d+)+'
 
-timing: 'pre'
+timing: 'prepost'
 
 pre_build:
   f_root: 'p[@class="floor_plan_size"]'
@@ -70,6 +70,8 @@ pre_build:
   replace:
     -
       studio: '0 1'
+    -
+      Room: '1 1'
     -
       '[^\d\s.]': ' '
   '[^\d.]+':
