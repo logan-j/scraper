@@ -11,7 +11,8 @@ import os
 import shutil
 
 def main():
-	
+	today = date.today()
+	d_date = "%s/%s/%s" % (today.month, today.day, today.year)
 	parser = argparse.ArgumentParser(description='Scrape general pricing and availability info.')
 	
 	parser.add_argument('-n', '--num', 
@@ -35,6 +36,18 @@ def main():
 		help='After the combined input file finishes, it cleans the temporary directory and combines the outputs',
 		default=False)
 
+	parser.add_argument('-d', '--date',
+		type=str,
+		nargs=1,
+		help='Specify a DATE between today and the given input to check for availabilty.',
+		default=[d_date])
+
+	parser.add_argument('-f', '--force',
+		action='store_true',
+		help='Force the scraper to use a browser simulator when running scrapes. Will run significantly\
+				slower, but may offer more coverage.',
+		default=False)
+
 	parser.add_argument('infile',
 		nargs='?',
 		type=str)
@@ -43,13 +56,8 @@ def main():
 		nargs='?',
 		type=argparse.FileType('w+'),
 		default=sys.stdout)
-	today = date.today()
-	d_date = "%s/%s/%s" % (today.month, today.day, today.year)
-	parser.add_argument('-d', '--date',
-		type=str,
-		nargs=1,
-		help='Specify a DATE between today and the given input to check for availabilty.',
-		default=[d_date])
+	
+	
 
 	args = parser.parse_args()
 	para = paradigm("perspectives.yaml", args.per[0])

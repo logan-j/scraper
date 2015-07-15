@@ -29,7 +29,7 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 		self.infile = args.infile
 		self.set_links(args.infile)
 		self.output = args.outfile
-	 	
+	 	self.force = args.force
 	
 	def set_links(self, links):
 		self.links = []
@@ -121,12 +121,13 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 	def load(self, url, tries=1, navigate=True, ds=None):
 		if not url.startswith('http'): url = "http:" + url
 		html = None
-		if ds:
+		if ds or self.force:
 			try:
 				if self.sess == None:
 					self.sess = webdriver.PhantomJS()
 				self.sess.get(url)
 				try:
+					if type(ds) == bool: ds = self.focus['unit']['tag']
 					element = WebDriverWait(self.sess, 30).until(
 						EC.presence_of_element_located((By.XPATH, ds)))
 					time.sleep(2)
@@ -156,15 +157,18 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 		else:
 
 			try:
-				text = requests.get(url)
+				text = requests.get(url, timeout=(10, 30))
+				time.sleep(1)
 				if text.status_code != 200:
 					if text.status_code >= 400:
 
-						sys.stderr.write(Fore.RED + ("Status code: %d. PAGE DID NOT LOAD; SKIPPING URL.\n" % text.status_code) + Fore.RESET)
-						return None
+						sys.stderr.write(Fore.YELLOW + ("Status code: %d. PAGE DID NOT LOAD; ATTEMPTING PHANTOMJS...\n" % text.status_code) + Fore.RESET)
+						return self.load(url, tries, navigate, True)
 					else:
 						sys.stderr.write(Fore.YELLOW + ("Status code: %d. Attempting to proceed.\n" % text.status_code) + Fore.RESET)
+						html = lxml.fromstring(text.text, base_url = text.url)
 				html = lxml.fromstring(text.text, base_url = text.url)
+
 
 			except KeyboardInterrupt:
 				sys.exit()
@@ -186,12 +190,12 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 						if self.focus.has_key('json'):
 							split = re.compile(self.focus['json']['split'])
 							loc = split.split(item.text)[self.focus['json']['index']]
-							return json.loads(requests.get(self.focus['json']['format'] % loc).text)
+							return json.loads(requests.get(self.focus['json']['format'] % loc).text, timeout=(10,30))
 						elif "href" in item.keys():
 							try:
 								goto = item.attrib['href']
 								if not goto.startswith('http'):goto = 'http:' + goto
-								text = requests.get(goto)
+								text = requests.get(goto, timeout=(10, 30))
 								return lxml.fromstring(text.text, base_url = text.url)
 							except KeyboardInterrupt:
 								sys.exit()						
