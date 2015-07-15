@@ -71,7 +71,7 @@ pre_build:
     -
       studio: '0 1'
     -
-      Room: '1 1'
+      room: '1 1'
     -
       '[^\d\s.]': ' '
   '[^\d.]+':
