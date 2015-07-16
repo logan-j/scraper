@@ -190,7 +190,7 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 						if self.focus.has_key('json'):
 							split = re.compile(self.focus['json']['split'])
 							loc = split.split(item.text)[self.focus['json']['index']]
-							return json.loads(requests.get(self.focus['json']['format'] % loc).text, timeout=(10,30))
+							return json.loads(requests.get(self.focus['json']['format'] % loc, timeout=(10,30)).text)
 						elif "href" in item.keys():
 							try:
 								goto = item.attrib['href']

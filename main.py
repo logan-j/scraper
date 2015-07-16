@@ -138,9 +138,7 @@ def main():
 							args.outfile.write(line)
 				shutil.rmtree('tmp')
 			except Exception as inst:
-				sys.stderr.write("Error while processing output: %s." % str(inst))
-			
-		
+				sys.stderr.write("Error while processing output: %s." % str(inst))	
 		
 
 	else:
