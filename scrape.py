@@ -26,10 +26,10 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 		self.focus = self.context.focus()
 		self.date = args.date
 		self.sess = None
+	 	self.force = args.force
+		self.output = args.outfile
 		self.infile = args.infile
 		self.set_links(args.infile)
-		self.output = args.outfile
-	 	self.force = args.force
 	
 	def set_links(self, links):
 		self.links = []
@@ -359,6 +359,7 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 						string = self.focus['classIDs'].pop()
 
 						w_unit[string] = self.link(subtag)
+
 				if len(w_unit) == self.focus['unit']['quan']:
 					if self.focus['timing'].endswith('post'):
 						for key, val in dict.iteritems(self.focus['post_build']):
@@ -631,6 +632,72 @@ class scrapeRedirect(scraper): #LINK 53
 			return "%s/%s/%s" % (today.month, today.day, today.year)	
 		else:
 			return re.sub('\(.+\)', '', i_date).strip()
+
+
+
+class scrapeFrancis(scraper): #LINK FRANCIS
+	"""
+	def load(self, url):
+		html =  None
+		try:
+			html = lxml.fromstring(requests.get(url).text, base_url=url)
+		except:
+			sys.stderr.write("Error loading %s\n. Skipping URL" % url)
+		finally:
+			return html
+	"""
+	def set_links(self, links):
+		self.links, potentials = [], []
+		try:
+			with open(links, 'r') as input_file:
+				
+				lines = [re.split(',|\t', x) for x in input_file.readlines()[1:]]
+
+				for line in lines:
+					potentials.append([line[0], line[1].strip()])
+
+		except IOError:
+			sys.stderr.write(Fore.RED + "Link file not found.\n" + Fore.RESET)
+			sys.exit()
+
+		for item in potentials:
+			html = self.load(item[1], 1, False)
+			if html != None:
+				for tag in html.xpath("//td[@class='FloorNav']"):
+
+					pid = re.sub('[^\d]+', '', tag.attrib['onclick'])
+					base_url = re.split('/', html.base_url)[2]
+					url = "http://%s/availability.asp?FPID=%s" % (base_url, pid)
+					self.links.append([item[0], url])
+
+	def get_units(self, html):
+
+		title = [re.sub('\s', '', x).encode('ascii', 'ignore') for x in html.xpath("//div[@class='FloatRight FloorplanDetailTitle']//text()") if len(re.sub('\s', '', x).encode('ascii', 'ignore')) > 0]
+		title = "".join(title[-3:])
+		title = re.split("-|\|", title)
+		title[1] = title[1].lower()
+		title[2] = title[2].lower()
+		units = []
+		map = {'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', '1/2': '.5', '1/4': '.5', '3/4': '.5'}
+		for key in map.keys():
+			title[1] = re.sub(key, map[key], title[1])
+			title[2] = re.sub(key, map[key], title[2])
+
+		common = {}
+		common['sqft'] = re.sub('[^\d]+', '', title[3])
+		common['floorPlan'] = " ".join([x for x in re.split("([A-Z][a-z]+)", title[0]) if len(x) > 0])
+		common['bed'] = re.sub('[^\d.]', '', title[1])
+		common['bath'] = re.sub('[^\d.]', '', title[2])
+		for tag in html.xpath(self.focus['unit']['tag'])[1:]:
+			w_unit = dict(common)
+			subtags = [x.encode('ascii', 'ignore') for x in tag.xpath(self.focus['unit']['subtag'])]
+			w_unit['unit'] = subtags[0]
+			w_unit['price'] = subtags[-2]
+			w_unit['available'] = subtags[-1]
+			units.append(w_unit)
+		return units
+
+
 
 
 

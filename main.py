@@ -103,7 +103,8 @@ def main():
 					"link8": 0, "link55": 1, 
 					"link96": 2, "avalonbay": 3, 
 					"link53": 4, "link 97": 5, 
-					"mac": 5, "aimco": 6
+					"mac": 5, "aimco": 6,
+					"francis": 7
 					}
 
 		processes = []
@@ -163,8 +164,12 @@ def main():
 
 			sc = scrapeExplicit(para, args)
 
+		elif para.focus().has_key('francis'): #FRANCIS
+			sc = scrapeFrancis(para, args)
+
 		else:									#LINK 8, LINK 55, LINK 96, AIMCO
 			sc = scraper(para, args)
+
 		sc.run(args.num[0])
 
 
