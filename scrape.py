@@ -47,7 +47,7 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 			sys.stderr.write(Fore.RED + "Please set links before running.\n" + Fore.RESET)
 			return		
 		
-		self.output.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tavailable_date\n")
+		self.output.write("property_id\tfloorplan_name\tunit_name\tsqft\tbed\tbath\tprice\tdate_available\n")
 		
 	
 		count, num = 1, len(self.links)
@@ -390,10 +390,8 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 
 		if self.focus['unit']['navigate']:
 			for unit in units:
-				
 				try:
 					p_range = unit['price'][0]
-
 					if type(unit['navigate']) == str:
 						b_title = "No Button Title"
 						vals = re.split('[^\d]+', re.split(';', unit['price'][1])[1])
@@ -401,7 +399,7 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 
 					else:	
 						b_title = unit['navigate'][0]
-						b_link = unit['navigate'][1]	
+						b_link = unit['navigate'][1]
 					if len(p_range) > 8:
 
 						if self.focus['nav']['flag'] in b_title.lower() and b_link != '':
@@ -424,10 +422,12 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 										if text != None and self.focus['pricer']['r_identifier'] in text.lower():
 											unit['set'] = True
 											unit['price'][1] = text
+					elif self.focus['nav']['flag'] not in b_title.lower():
+						
+						sys.stderr.write(Fore.RED + b_title + "\n" + Fore.RESET)
+
 					else:
-						if self.focus['nav']['flag'] not in b_title.lower():
-							sys.stderr.write(Fore.RED + b_title + "\n" + Fore.RESET)
-						pass
+						unit['price'] = unit['price'][0]
 					
 				except Exception as inst:
 					sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
