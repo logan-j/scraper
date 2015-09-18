@@ -426,8 +426,9 @@ class scraper: #LINK 8, LINK 55, LINK 96, AIMCO
 						
 						sys.stderr.write(Fore.RED + b_title + "\n" + Fore.RESET)
 
-					else:
+					elif type(unit['price']) == list:
 						unit['price'] = unit['price'][0]
+
 					
 				except Exception as inst:
 					sys.stderr.write(Fore.RED + "%s, %s, %s\n" % (sys.exc_info()[0], inst, inst.args) + Fore.RESET)
